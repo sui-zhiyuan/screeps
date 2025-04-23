@@ -7,7 +7,7 @@ use js_sys::{JsString, Object, Reflect};
 use log::*;
 use screeps::{
     action_error_codes::*,
-    constants::{Part, ResourceType},
+    constants::ResourceType,
     enums::StructureObject,
     find, game,
     local::ObjectId,
@@ -17,6 +17,8 @@ use screeps::{
 use wasm_bindgen::prelude::*;
 
 mod logging;
+mod spawn;
+mod actor;
 
 // this is one way to persist data between ticks within Rust's memory, as opposed to
 // keeping state in memory on game objects - but will be lost on global resets!
@@ -56,7 +58,7 @@ pub fn game_loop() {
         }
     });
 
-    debug!("running spawns");
+/*    debug!("running spawns");
     let mut additional = 0;
     for spawn in game::spawns().values() {
         debug!("running spawn {}", spawn.name());
@@ -71,7 +73,9 @@ pub fn game_loop() {
                 Err(e) => warn!("couldn't spawn: {:?}", e),
             }
         }
-    }
+    }*/
+
+    actor::run();
 
     // memory cleanup; memory gets created for all creeps upon spawning, and any time move_to
     // is used; this should be removed if you're using RawMemory/serde for persistence
