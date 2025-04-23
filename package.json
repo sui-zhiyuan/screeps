@@ -1,0 +1,39 @@
+{
+  "name": "screeps-starter-rust",
+  "version": "0.1.0",
+  "description": "",
+  "files": [
+    "dist/"
+  ],
+  "main": "dist/main.js",
+  "scripts": {
+    "deploy": "node js_tools/deploy.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rustyscreeps/screeps-starter-rust.git"
+  },
+  "author": "",
+  "bugs": {
+    "url": "https://github.com/rustyscreeps/screeps-starter-rust/issues"
+  },
+  "homepage": "https://github.com/rustyscreeps/screeps-starter-rust",
+  "screeps_bot": true,
+  "dependencies": {
+    "fastestsmallesttextencoderdecoder-encodeinto": "^1.0.22",
+    "fs-extra": "^11.3.0"
+  },
+  "devDependencies": {
+    "@babel/preset-env": "^7.25.3",
+    "@rollup/plugin-babel": "^6.0.4",
+    "@rollup/plugin-commonjs": "^26.0.1",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-terser": "^0.4.4",
+    "rollup": "^4.21.0",
+    "rollup-plugin-copy": "^3.5.0",
+    "screeps-api": "^1.16.0",
+    "yamljs": "^0.3.0",
+    "yargs": "^17.7.2"
+  },
+  "packageManager": "pnpm@10.9.0+sha512.0486e394640d3c1fb3c9d43d49cf92879ff74f8516959c235308f5a8f62e2e19528a65cdc2a3058f587cde71eba3d5b56327c8c33a97e4c4051ca48a10ca2d5f"
+}
