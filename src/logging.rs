@@ -77,10 +77,8 @@ fn panic_hook(info: &panic::PanicHookInfo) {
     let mut fmt_error = String::new();
     let _ = writeln!(fmt_error, "{}", info);
 
-    // this could be controlled with an env var at compilation instead
-    const SHOW_BACKTRACE: bool = true;
 
-    if SHOW_BACKTRACE {
+    if cfg!(feature = "backtrace") {
         Error::stack_trace_limit(10000_f32);
         let stack = Error::new().stack();
         // Skip all frames before the special symbol `__rust_end_short_backtrace`

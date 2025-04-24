@@ -1,7 +1,36 @@
 use anyhow::{Result, anyhow};
 use log::info;
 use screeps::action_error_codes::{HarvestErrorCode, TransferErrorCode};
-use screeps::{Creep, ResourceType, SharedCreepProperties, find};
+use screeps::{Creep, ObjectId, ResourceType, SharedCreepProperties, Source, StructureController, StructureSpawn, find, HasId};
+use wasm_bindgen::JsValue;
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize)]
+pub(crate) struct CreepHarvester {
+    source: ObjectId<Source>,
+    spawn: ObjectId<StructureSpawn>,
+}
+
+impl CreepHarvester{
+    pub fn new(source :&Source ,spawn: &StructureSpawn) -> Self{
+        CreepHarvester{
+            source: source.id(),
+            spawn: spawn.id(),
+        }
+    }
+}
+
+
+#[derive(Serialize, Deserialize)]
+pub(crate) struct CreepActorUpgrader {
+    spawn: ObjectId<StructureSpawn>,
+    controller: ObjectId<StructureController>,
+}
+
+trait CreepActor {
+    fn to_memory(&self) -> JsValue;
+    fn from_memory(mem: JsValue) -> Self;
+}
 
 pub(super) fn run(creep: &Creep) -> Result<()> {
     info!("running creep with {:?}", creep.spawning());

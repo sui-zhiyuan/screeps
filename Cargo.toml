@@ -18,9 +18,12 @@ screeps-game-api = "0.23"
 wasm-bindgen = "0.2"
 web-sys = { version = "0.3", features = ["console"] }
 anyhow = "1.0.98"
+serde = { version = "1.0.219", features = ["derive"] }
+serde-wasm-bindgen = "0.6.5"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
+[profile.dev]
 
 [profile.release]
 panic = "abort"
@@ -37,7 +40,8 @@ lto = true
 wasm-opt = ["-O4", "--signext-lowering"]
 
 [features]
-default = []
+default = ["backtrace"]
+backtrace = []
 
 sim = ["screeps-game-api/sim"]
 mmo = ["screeps-game-api/mmo"]
