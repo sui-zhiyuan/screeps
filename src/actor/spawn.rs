@@ -2,15 +2,19 @@ use anyhow::{Result, anyhow};
 use log::info;
 use screeps::{Part, StructureSpawn, find, game};
 
-pub(crate) fn run(spawn: StructureSpawn) -> Result<()> {
+pub(crate) fn run(spawn: &StructureSpawn) -> Result<()> {
+    if spawn.spawning().is_some() {
+        info!("spawning...");
+        return Ok(());
+    }
+
     let room = spawn.room().ok_or(anyhow!("room not found"))?;
     let creeps = room.find(find::CREEPS, None);
     if !creeps.is_empty() {
         return Ok(());
     }
 
-    info!("creating working");
-
+    info!("creating worker");
     let body = [Part::Carry, Part::Work, Part::Move, Part::Move];
     let cost = body.iter().map(|p| p.cost()).sum();
 

@@ -11,7 +11,7 @@ pub use log::LevelFilter::*;
 struct JsLog;
 struct JsNotify;
 
-impl log::Log for JsLog {
+impl Log for JsLog {
     fn enabled(&self, _: &log::Metadata<'_>) -> bool {
         true
     }
@@ -20,7 +20,7 @@ impl log::Log for JsLog {
     }
     fn flush(&self) {}
 }
-impl log::Log for JsNotify {
+impl Log for JsNotify {
     fn enabled(&self, _: &log::Metadata<'_>) -> bool {
         true
     }

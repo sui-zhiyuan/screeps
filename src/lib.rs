@@ -16,9 +16,8 @@ use screeps::{
 };
 use wasm_bindgen::prelude::*;
 
-mod logging;
-mod spawn;
 mod actor;
+mod logging;
 
 // this is one way to persist data between ticks within Rust's memory, as opposed to
 // keeping state in memory on game objects - but will be lost on global resets!
@@ -50,30 +49,13 @@ pub fn game_loop() {
 
     // mutably borrow the creep_targets refcell, which is holding our creep target locks
     // in the wasm heap
-    CREEP_TARGETS.with(|creep_targets_refcell| {
-        let mut creep_targets = creep_targets_refcell.borrow_mut();
-        debug!("running creeps");
-        for creep in game::creeps().values() {
-            run_creep(&creep, &mut creep_targets);
-        }
-    });
-
-/*    debug!("running spawns");
-    let mut additional = 0;
-    for spawn in game::spawns().values() {
-        debug!("running spawn {}", spawn.name());
-
-        let body = [Part::Move, Part::Move, Part::Carry, Part::Work];
-        if spawn.room().unwrap().energy_available() >= body.iter().map(|p| p.cost()).sum() {
-            // create a unique name, spawn.
-            let name_base = game::time();
-            let name = format!("{}-{}", name_base, additional);
-            match spawn.spawn_creep(&body, &name) {
-                Ok(()) => additional += 1,
-                Err(e) => warn!("couldn't spawn: {:?}", e),
-            }
-        }
-    }*/
+    // CREEP_TARGETS.with(|creep_targets_refcell| {
+    //     let mut creep_targets = creep_targets_refcell.borrow_mut();
+    //     debug!("running creeps");
+    //     for creep in game::creeps().values() {
+    //         run_creep(&creep, &mut creep_targets);
+    //     }
+    // });
 
     actor::run();
 
