@@ -1,10 +1,12 @@
 use log::error;
-use screeps::game;
+use screeps::{game, Creep};
 
 mod creep_actor;
 mod spawn_actor;
+mod creep_harvester;
+mod creep_upgrader;
 
-pub(crate) fn run() {
+pub fn run() {
     for s in game::spawns().values() {
         match spawn_actor::run(&s) {
             Ok(_) => (),
@@ -19,4 +21,8 @@ pub(crate) fn run() {
             error!("creep run error {}", e);
         }
     }
+}
+
+trait CreepMemoryTrait {
+    fn run(&mut self, creep: &Creep) -> anyhow::Result<()>;
 }
