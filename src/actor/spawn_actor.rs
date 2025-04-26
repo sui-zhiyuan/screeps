@@ -1,8 +1,8 @@
-use crate::actor::creep_actor::CreepHarvester;
 use anyhow::{Result, anyhow};
 use log::info;
 use screeps::{Part, SpawnOptions, StructureSpawn, find, game};
-use wasm_bindgen::JsValue;
+
+use crate::actor::creep_actor::CreepMemory;
 
 pub(crate) fn run(spawn: &StructureSpawn) -> Result<()> {
     if spawn.spawning().is_some() {
@@ -33,9 +33,7 @@ pub(crate) fn run(spawn: &StructureSpawn) -> Result<()> {
     let sources = room.find(find::SOURCES, None);
     let source = sources.first().ok_or(anyhow!("no source found"))?;
 
-    let memory = CreepHarvester::new(source, spawn);
-    let memory: JsValue =
-        serde_wasm_bindgen::to_value(&memory).map_err(|e| anyhow!(e.to_string()))?;
+    let memory = CreepMemory::new_harvester(&source, &spawn).to_js_value()?;
     let option = SpawnOptions::new().memory(memory);
 
     spawn.spawn_creep_with_options(&body, &name, &option)?;
