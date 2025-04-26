@@ -5,6 +5,7 @@ mod creep_actor;
 mod spawn_actor;
 mod creep_harvester;
 mod creep_upgrader;
+mod creep_builder;
 
 pub fn run() {
     for s in game::spawns().values() {

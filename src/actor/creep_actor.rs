@@ -1,18 +1,19 @@
+use crate::actor::CreepMemoryTrait;
+use crate::actor::creep_builder::CreepBuilderMemory;
+use crate::actor::creep_harvester::CreepHarvesterMemory;
+use crate::actor::creep_upgrader::CreepUpgraderMemory;
 use anyhow::Result;
 use gloo_utils::format::JsValueSerdeExt;
 use screeps::Creep;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::JsValue;
 
-use crate::actor::CreepMemoryTrait;
-use crate::actor::creep_harvester::CreepHarvesterMemory;
-use crate::actor::creep_upgrader::CreepUpgraderMemory;
-
 pub fn run(creep: &Creep) -> Result<()> {
     let mut memory = CreepMemory::from_js_value(creep.memory())?;
     match &mut memory {
         CreepMemory::Harvester(memory) => memory.run(creep),
         CreepMemory::Upgrader(memory) => memory.run(creep),
+        CreepMemory::Builder(memory) => memory.run(creep),
     }?;
 
     creep.set_memory(&memory.to_js_value()?);
@@ -24,6 +25,7 @@ pub fn run(creep: &Creep) -> Result<()> {
 pub enum CreepMemory {
     Harvester(CreepHarvesterMemory),
     Upgrader(CreepUpgraderMemory),
+    Builder(CreepBuilderMemory),
 }
 
 impl CreepMemory {

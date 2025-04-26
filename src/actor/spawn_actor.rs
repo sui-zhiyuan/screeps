@@ -3,6 +3,7 @@ use log::info;
 use screeps::{Part, SpawnOptions, StructureSpawn, find, game};
 
 use crate::actor::creep_actor::CreepMemory;
+use crate::actor::creep_builder::CreepBuilderMemory;
 use crate::actor::creep_harvester::CreepHarvesterMemory;
 use crate::actor::creep_upgrader::CreepUpgraderMemory;
 
@@ -16,7 +17,8 @@ pub(crate) fn run(spawn: &StructureSpawn) -> Result<()> {
     let creeps = room.find(find::CREEPS, None);
     let structure = match creeps.len() {
         0 => CreepStructure::new_harvest(spawn)?,
-        1 => CreepStructure::new_upgrader(spawn)?,
+        1 => CreepStructure::new_builder(spawn)?,
+        2 => CreepStructure::new_upgrader(spawn)?,
         _ => return Ok(()),
     };
 
@@ -49,6 +51,16 @@ impl CreepStructure {
 
         let body = vec![Part::Carry, Part::Work, Part::Move, Part::Move];
         let memory = CreepHarvesterMemory::new_memory(source, spawn);
+
+        Ok(CreepStructure { name, body, memory })
+    }
+
+    fn new_builder(spawn: &StructureSpawn) -> Result<CreepStructure> {
+        let name_base = game::time();
+        let name = format!("{name_base}-0");
+
+        let body = vec![Part::Carry, Part::Work, Part::Move, Part::Move];
+        let memory = CreepBuilderMemory::new_memory(spawn);
 
         Ok(CreepStructure { name, body, memory })
     }
