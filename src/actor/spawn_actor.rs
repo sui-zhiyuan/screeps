@@ -1,13 +1,14 @@
 use anyhow::{Result, anyhow};
 use log::info;
-use screeps::{Part, SpawnOptions, StructureSpawn, find, game};
+use screeps::{Part, StructureSpawn, find, game};
 
+use crate::Memory;
 use crate::actor::creep_actor::CreepMemory;
 use crate::actor::creep_builder::CreepBuilderMemory;
 use crate::actor::creep_harvester::CreepHarvesterMemory;
 use crate::actor::creep_upgrader::CreepUpgraderMemory;
 
-pub(crate) fn run(spawn: &StructureSpawn) -> Result<()> {
+pub(crate) fn run(spawn: &StructureSpawn, memory: &mut Memory) -> Result<()> {
     if spawn.spawning().is_some() {
         info!("spawning...");
         return Ok(());
@@ -28,9 +29,8 @@ pub(crate) fn run(spawn: &StructureSpawn) -> Result<()> {
         return Ok(());
     }
 
-    let option = SpawnOptions::new().memory(structure.memory.to_js_value()?);
-
-    spawn.spawn_creep_with_options(&structure.body, &structure.name, &option)?;
+    spawn.spawn_creep(&structure.body, &structure.name)?;
+    memory.creeps.insert(structure.name, structure.memory);
     Ok(())
 }
 

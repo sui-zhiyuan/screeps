@@ -1,55 +1,75 @@
-use std::collections::HashSet;
-
-use js_sys::{JsString, Object, Reflect};
+use crate::actor::{CreepMemory, RunResult};
+use anyhow::{Result, anyhow};
+use js_sys::JsString;
 use log::*;
-use screeps::game;
+use screeps::{game, raw_memory};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::Mutex;
 use wasm_bindgen::prelude::*;
 
 mod actor;
 mod logging;
 
+#[derive(Serialize, Deserialize, Default)]
+struct Memory {
+    rooms: HashMap<String, ()>,
+    spawns: HashMap<String, ()>,
+    creeps: HashMap<String, CreepMemory>,
+    flags: HashMap<String, ()>,
+}
+
 static INIT_LOGGING: std::sync::Once = std::sync::Once::new();
+
+static MEMORY: Mutex<Option<Memory>> = Mutex::new(None);
 
 // add wasm_bindgen to any function you would like to expose for call from js
 // to use a reserved name as a function name, use `js_name`:
 #[wasm_bindgen(js_name = loop)]
 pub fn game_loop() {
+    if let Err(e) = game_loop_inner() {
+        error!("loop failed : {}", e);
+    }
+}
+
+fn game_loop_inner() -> Result<()> {
     INIT_LOGGING.call_once(|| {
         // show all output of Info level, adjust as needed
         logging::setup_logging(logging::Info);
     });
 
-    debug!("loop starting! CPU: {}", game::cpu::get_used());
+    let mut memory_lock = MEMORY
+        .lock()
+        .map_err(|e| anyhow!("memory lock err: {}", e))?;
+    let memory = match memory_lock.take() {
+        Some(memory) => memory,
+        None => load_memory()?,
+    };
+    let memory = memory_lock.insert(memory);
 
-    actor::run();
+    info!("loop starting! CPU: {}", game::cpu::get_used());
 
-    // memory cleanup; memory gets created for all creeps upon spawning, and any time move_to
-    // is used; this should be removed if you're using RawMemory/serde for persistence
-    if game::time() % 1000 == 0 {
-        info!("running memory cleanup");
-        let mut alive_creeps = HashSet::new();
-        // add all living creep names to a hashset
-        for creep_name in game::creeps().keys() {
-            alive_creeps.insert(creep_name);
-        }
+    let called = actor::run(memory);
+    store_memory(memory, &called)?;
 
-        // grab `Memory.creeps` (if it exists)
-        if let Ok(memory_creeps) = Reflect::get(&screeps::memory::ROOT, &JsString::from("creeps")) {
-            // convert from JsValue to Object
-            let memory_creeps: Object = memory_creeps.unchecked_into();
-            // iterate memory creeps
-            for creep_name_js in Object::keys(&memory_creeps).iter() {
-                // convert to String (after converting to JsString)
-                let creep_name = String::from(creep_name_js.dyn_ref::<JsString>().unwrap());
+    info!("done! cpu: {}", game::cpu::get_used());
 
-                // check the HashSet for the creep name, deleting if not alive
-                if !alive_creeps.contains(&creep_name) {
-                    info!("deleting memory for dead creep {}", creep_name);
-                    let _ = Reflect::delete_property(&memory_creeps, &creep_name_js);
-                }
-            }
-        }
-    }
+    Ok(())
+}
 
-    info!("done! cpu: {}", game::cpu::get_used())
+fn load_memory() -> Result<Memory> {
+    info!("loading memory");
+    let js_memory = raw_memory::get();
+    let json_memory: String = js_memory.into();
+    let memory: Memory = serde_json::from_str(&json_memory)?;
+    Ok(memory)
+}
+
+fn store_memory(memory: &mut Memory, called: &RunResult) -> Result<()> {
+    memory.creeps.retain(|name, _| called.creeps.contains(name));
+
+    let json_memory = serde_json::to_string(&memory)?;
+    let js_memory = JsString::from(json_memory);
+    raw_memory::set(&js_memory);
+    Ok(())
 }

@@ -1,27 +1,40 @@
 use log::error;
-use screeps::{game, Creep};
+use screeps::{Creep, SharedCreepProperties, game};
+use std::collections::HashSet;
 
 mod creep_actor;
-mod spawn_actor;
+mod creep_builder;
 mod creep_harvester;
 mod creep_upgrader;
-mod creep_builder;
+mod spawn_actor;
 
-pub fn run() {
+use crate::Memory;
+pub use creep_actor::CreepMemory;
+
+#[derive(Default)]
+pub struct RunResult {
+    pub spawns: HashSet<String>,
+    pub creeps: HashSet<String>,
+}
+
+pub fn run(memory: &mut Memory) -> RunResult {
+    let mut result = RunResult::default();
     for s in game::spawns().values() {
-        match spawn_actor::run(&s) {
-            Ok(_) => (),
-            Err(e) => {
-                error!("spawn running error {}", e);
-            }
+        if let Err(e) = spawn_actor::run(&s, memory) {
+            error!("spawn running error {}", e);
         }
+
+        result.spawns.insert(s.name());
     }
 
     for c in game::creeps().values() {
-        if let Err(e) = creep_actor::run(&c) {
+        if let Err(e) = creep_actor::run(&c, memory) {
             error!("creep run error {}", e);
         }
+        result.creeps.insert(c.name());
     }
+
+    result
 }
 
 trait CreepMemoryTrait {
