@@ -1,10 +1,10 @@
-use anyhow::{Result, anyhow, bail};
+use anyhow::{Result, anyhow};
 use gloo_utils::format::JsValueSerdeExt;
 use log::info;
 use screeps::action_error_codes::{HarvestErrorCode, TransferErrorCode};
 use screeps::{
-    Creep, HasId, ObjectId, ResourceType, SharedCreepProperties, Source, StructureController,
-    StructureSpawn,
+    Creep, HasId, HasPosition, ObjectId, ResourceType, SharedCreepProperties, Source,
+    StructureController, StructureSpawn,
 };
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::JsValue;
@@ -16,8 +16,7 @@ pub fn run(creep: &Creep) -> Result<()> {
         CreepMemory::Upgrader(memory) => memory.run(&creep),
     }?;
 
-    // TODO save memory
-
+    creep.set_memory(&memory.to_js_value()?);
     Ok(())
 }
 
@@ -44,6 +43,7 @@ impl CreepMemory {
         Self::Upgrader(CreepUpgraderMemory {
             spawn: spawn.id(),
             controller: controller.id(),
+            state: State::Loading,
         })
     }
 
@@ -52,10 +52,7 @@ impl CreepMemory {
     }
 
     pub fn from_js_value(value: JsValue) -> Result<Self> {
-        info!("before parse memory {value:?}");
-        let result = value.into_serde()?;
-        info!("after parse memory");
-        Ok(result)
+        value.into_serde().map_err(|e| e.into())
     }
 }
 
@@ -67,8 +64,6 @@ pub struct CreepHarvesterMemory {
 
 impl CreepMemoryTrait for CreepHarvesterMemory {
     fn run(&mut self, creep: &Creep) -> Result<()> {
-        info!("running creep with {:?}", creep.spawning());
-
         if creep.spawning() {
             return Ok(());
         }
@@ -100,10 +95,47 @@ impl CreepMemoryTrait for CreepHarvesterMemory {
 pub struct CreepUpgraderMemory {
     spawn: ObjectId<StructureSpawn>,
     controller: ObjectId<StructureController>,
+    state: State,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+enum State {
+    Loading,
+    Upgrading,
 }
 
 impl CreepMemoryTrait for CreepUpgraderMemory {
-    fn run(&mut self, _creep: &Creep) -> Result<()> {
-        bail!("not completed")
+    fn run(&mut self, creep: &Creep) -> Result<()> {
+        if creep.spawning() {
+            return Ok(());
+        }
+
+        if creep.store().get_used_capacity(Some(ResourceType::Energy)) == 0 {
+            let spawn = &self.spawn.resolve().ok_or(anyhow!("spawn not found"))?;
+            if !creep.pos().is_near_to(spawn.pos()) {
+                creep.move_to(&spawn)?;
+                return Ok(());
+            }
+            if creep.store().get_free_capacity(Some(ResourceType::Energy))
+                > spawn.store().get_used_capacity(Some(ResourceType::Energy)) as i32
+            {
+                return Ok(());
+            }
+
+            creep.withdraw(spawn, ResourceType::Energy, None)?;
+            Ok(())
+        } else {
+            let controller = &self
+                .controller
+                .resolve()
+                .ok_or(anyhow!("controller not found"))?;
+            if !creep.pos().is_near_to(controller.pos()) {
+                creep.move_to(&controller)?;
+                return Ok(());
+            }
+
+            creep.upgrade_controller(&controller)?;
+            Ok(())
+        }
     }
 }

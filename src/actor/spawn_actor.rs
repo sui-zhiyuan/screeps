@@ -12,30 +12,59 @@ pub(crate) fn run(spawn: &StructureSpawn) -> Result<()> {
 
     let room = spawn.room().ok_or(anyhow!("room not found"))?;
     let creeps = room.find(find::CREEPS, None);
-    if !creeps.is_empty() {
-        return Ok(());
-    }
+    let structure = match creeps.len() {
+        0 => CreepStructure::new_harvest(&spawn)?,
+        1 => CreepStructure::new_upgrader(&spawn)?,
+        _ => return Ok(()),
+    };
 
-    info!("creating worker");
-    let body = [Part::Carry, Part::Work, Part::Move, Part::Move];
-    let cost = body.iter().map(|p| p.cost()).sum();
-
-    if room.energy_available() < cost {
+    info!("creating");
+    if room.energy_available() < structure.cost() {
         info!("not enough energy");
         return Ok(());
     }
 
-    let additional = 0;
-    // create a unique name, spawn.
-    let name_base = game::time();
-    let name = format!("{}-{}", name_base, additional);
+    let option = SpawnOptions::new().memory(structure.memory.to_js_value()?);
 
-    let sources = room.find(find::SOURCES, None);
-    let source = sources.first().ok_or(anyhow!("no source found"))?;
-
-    let memory = CreepMemory::new_harvester(&source, &spawn).to_js_value()?;
-    let option = SpawnOptions::new().memory(memory);
-
-    spawn.spawn_creep_with_options(&body, &name, &option)?;
+    spawn.spawn_creep_with_options(&structure.body, &structure.name, &option)?;
     Ok(())
+}
+
+struct CreepStructure {
+    name: String,
+    body: Vec<Part>,
+    memory: CreepMemory,
+}
+
+impl CreepStructure {
+    fn new_harvest(spawn: &StructureSpawn) -> Result<CreepStructure> {
+        let name_base = game::time();
+        let name = format!("{name_base}-0");
+
+        let room = spawn.room().ok_or(anyhow!("room not found"))?;
+        let sources = room.find(find::SOURCES, None);
+        let source = sources.first().ok_or(anyhow!("no source found"))?;
+
+        let body = vec![Part::Carry, Part::Work, Part::Move, Part::Move];
+        let memory = CreepMemory::new_harvester(&source, &spawn);
+
+        Ok(CreepStructure { name, body, memory })
+    }
+
+    fn new_upgrader(spawn: &StructureSpawn) -> Result<CreepStructure> {
+        let name_base = game::time();
+        let name = format!("{name_base}-0");
+
+        let room = spawn.room().ok_or(anyhow!("room not found"))?;
+        let controller = room.controller().ok_or(anyhow!("controller not found"))?;
+
+        let body = vec![Part::Carry, Part::Work, Part::Move, Part::Move];
+        let memory = CreepMemory::new_upgrader(spawn, &controller);
+
+        Ok(CreepStructure { name, body, memory })
+    }
+
+    fn cost(&self) -> u32 {
+        self.body.iter().map(|p| p.cost()).sum()
+    }
 }
