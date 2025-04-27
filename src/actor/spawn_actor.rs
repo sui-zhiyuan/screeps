@@ -1,12 +1,34 @@
-use anyhow::{Result, anyhow};
-use log::info;
-use screeps::{Part, StructureSpawn, find, game};
-
 use crate::Memory;
+use crate::actor::Actor;
 use crate::actor::creep_actor::CreepMemory;
 use crate::actor::creep_builder::CreepBuilderMemory;
 use crate::actor::creep_harvester::CreepHarvesterMemory;
 use crate::actor::creep_upgrader::CreepUpgraderMemory;
+use crate::entity::Entities;
+use crate::task::{EnergyTask, Task};
+use anyhow::{Result, anyhow};
+use log::info;
+use screeps::{HasId, Part, StructureSpawn, find, game};
+
+pub struct SpawnActor<'a> {
+    spawn: &'a StructureSpawn,
+    memory: &'a mut SpawnMemory,
+}
+
+impl Actor for StructureSpawn {
+    fn plan(&self, entities: &Entities, memory: &mut Memory, tasks: &mut Vec<Task>) -> Result<()> {
+        let task = Task::Energy(EnergyTask { target: self.id() });
+
+        tasks.push(task);
+        Ok(())
+    }
+
+    fn run(&self, memory: &mut Memory) -> Result<()> {
+        todo!()
+    }
+}
+
+struct SpawnMemory();
 
 pub(crate) fn run(spawn: &StructureSpawn, memory: &mut Memory) -> Result<()> {
     if spawn.spawning().is_some() {
