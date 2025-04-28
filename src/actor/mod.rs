@@ -12,25 +12,24 @@ mod spawn_actor;
 
 use crate::entity::Entities;
 use crate::memory::Memory;
-use crate::task::Task;
+use crate::task::{Task, Tasks};
 pub use creep_actor::CreepMemory;
+pub use spawn_actor::SpawnMemory;
 
 trait Actor {
-    fn plan(&self, entities: &Entities, memory: &mut Memory, tasks: &mut Vec<Task>) -> Result<()>;
+    fn plan(&self, memory: &mut Memory, tasks: &mut Tasks) -> Result<()>;
     fn run(&self, memory: &mut Memory) -> Result<()>;
 }
 
 pub fn run(entities: &Entities, memory: &mut Memory) {
-    let spawns = entities.spawns.values().map(|v| ActorEntity::from(v));
+    let mut tasks = Tasks::default();
 
-    let creeps = entities.creeps.values().map(|v| ActorEntity::from(v));
-
-    let mut tasks = Vec::new();
-
+    let spawns = entities.spawns.iter().map(|v| ActorEntity::from(v));
+    let creeps = entities.creeps.iter().map(|v| ActorEntity::from(v));
     let actors = spawns.chain(creeps).collect::<Vec<_>>();
 
     for actor in actors {
-        actor.plan(entities, memory, &mut tasks).expect("todo");
+        actor.plan(memory, &mut tasks).expect("todo");
     }
 
     // let spawns = ctx.spawns.iter().map(|(name, spawn)| ()).collect();
@@ -76,10 +75,10 @@ impl<'a> From<&'a Creep> for ActorEntity<'a> {
 }
 
 impl<'a> Actor for ActorEntity<'a> {
-    fn plan(&self, entities: &Entities, memory: &mut Memory, tasks: &mut Vec<Task>) -> Result<()> {
+    fn plan(&self, memory: &mut Memory, tasks: &mut Tasks) -> Result<()> {
         match self {
-            ActorEntity::Spawn(spawn) => spawn.plan(entities, memory, tasks),
-            ActorEntity::Creep(c) => c.plan(entities, memory, tasks),
+            ActorEntity::Spawn(spawn) => spawn.plan(memory, tasks),
+            ActorEntity::Creep(c) => c.plan(memory, tasks),
         }
     }
 

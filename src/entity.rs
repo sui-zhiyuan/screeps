@@ -1,22 +1,15 @@
-use screeps::{Creep, SharedCreepProperties, StructureSpawn, game};
-use std::collections::HashMap;
+use screeps::{Creep, StructureSpawn, game};
 
 pub struct Entities {
-    pub spawns: HashMap<String, StructureSpawn>,
-    pub creeps: HashMap<String, Creep>,
+    pub spawns: Vec<StructureSpawn>,
+    pub creeps: Vec<Creep>,
 }
 
 impl Entities {
     pub fn new() -> Self {
-        let spawns = game::spawns()
-            .values()
-            .map(|v| (v.name(), v))
-            .collect::<HashMap<_, _>>();
+        let spawns = game::spawns().values().collect::<Vec<_>>();
 
-        let creeps = game::creeps()
-            .values()
-            .map(|v| (v.name(), v))
-            .collect::<HashMap<_, _>>();
+        let creeps = game::creeps().values().collect::<Vec<_>>();
 
         Entities { spawns, creeps }
     }

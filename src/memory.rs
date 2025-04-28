@@ -1,11 +1,11 @@
-use crate::actor::CreepMemory;
+use crate::actor::{CreepMemory, SpawnMemory};
 use crate::entity::Entities;
 use anyhow::{Result, anyhow};
 use js_sys::JsString;
 use log::info;
-use screeps::raw_memory;
+use screeps::{SharedCreepProperties, raw_memory};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Mutex, MutexGuard};
 
 static MEMORY: Mutex<Option<Memory>> = Mutex::new(None);
@@ -13,7 +13,7 @@ static MEMORY: Mutex<Option<Memory>> = Mutex::new(None);
 #[derive(Serialize, Deserialize, Default)]
 pub struct Memory {
     pub rooms: HashMap<String, ()>,
-    pub spawns: HashMap<String, ()>,
+    pub spawns: HashMap<String, SpawnMemory>,
     pub creeps: HashMap<String, CreepMemory>,
     pub flags: HashMap<String, ()>,
 }
@@ -52,8 +52,12 @@ impl Memory {
     }
 
     fn clean_up_memory(&mut self, entities: &Entities) {
-        self.creeps
-            .retain(|name, _| entities.creeps.contains_key(name));
+        let creeps = entities
+            .creeps
+            .iter()
+            .map(|v| v.name())
+            .collect::<HashSet<_>>();
+        self.creeps.retain(|name, _| creeps.contains(name));
     }
 
     fn store_memory(&self) -> Result<()> {

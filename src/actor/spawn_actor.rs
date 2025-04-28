@@ -4,22 +4,53 @@ use crate::actor::creep_actor::CreepMemory;
 use crate::actor::creep_builder::CreepBuilderMemory;
 use crate::actor::creep_harvester::CreepHarvesterMemory;
 use crate::actor::creep_upgrader::CreepUpgraderMemory;
-use crate::entity::Entities;
-use crate::task::{EnergyTask, Task};
-use anyhow::{Result, anyhow};
+use crate::task::TaskTrait;
+use crate::task::{Task, TaskId, Tasks};
+use anyhow::{Result, anyhow, bail};
 use log::info;
+use screeps::ResourceType::Energy;
 use screeps::{HasId, Part, StructureSpawn, find, game};
+use serde::{Deserialize, Serialize};
 
-pub struct SpawnActor<'a> {
-    spawn: &'a StructureSpawn,
-    memory: &'a mut SpawnMemory,
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct SpawnMemory {
+    income_energy: i32,
+    outgo_energy: i32,
+    income_task: Option<TaskId>,
+    outgo_task: Vec<TaskId>,
 }
 
 impl Actor for StructureSpawn {
-    fn plan(&self, entities: &Entities, memory: &mut Memory, tasks: &mut Vec<Task>) -> Result<()> {
-        let task = Task::Energy(EnergyTask { target: self.id() });
+    fn plan(&self, memory: &mut Memory, tasks: &mut Tasks) -> Result<()> {
+        let memory = memory
+            .spawns
+            .entry(self.name())
+            .or_insert_with(Default::default);
 
-        tasks.push(task);
+        let required_energy = self.store().get_free_capacity(Some(Energy)) - memory.income_energy;
+        if required_energy <= 0 {
+            return Ok(());
+        }
+
+        let Some(task_id) = memory.income_task else {
+            let task = tasks.new_energy_require(self, required_energy);
+            memory.income_task = Some(task.id());
+            memory.income_energy = task.energy;
+            return Ok(());
+        };
+
+        let task = tasks
+            .get_mut(task_id)
+            .ok_or(anyhow!("missing task id {task_id}"))?;
+
+        match task {
+            Task::EnergyRequire(task) => {
+                task.energy += required_energy;
+                memory.income_energy = task.energy;
+            }
+            _ => bail!("unmatched task type {task:?}"),
+        }
+
         Ok(())
     }
 
@@ -27,8 +58,6 @@ impl Actor for StructureSpawn {
         todo!()
     }
 }
-
-struct SpawnMemory();
 
 pub(crate) fn run(spawn: &StructureSpawn, memory: &mut Memory) -> Result<()> {
     if spawn.spawning().is_some() {

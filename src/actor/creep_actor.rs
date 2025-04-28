@@ -1,13 +1,13 @@
 use crate::Memory;
-use crate::actor::{Actor, CreepMemoryTrait};
 use crate::actor::creep_builder::CreepBuilderMemory;
 use crate::actor::creep_harvester::CreepHarvesterMemory;
 use crate::actor::creep_upgrader::CreepUpgraderMemory;
+use crate::actor::{Actor, CreepMemoryTrait};
+use crate::entity::Entities;
+use crate::task::{Task, Tasks};
 use anyhow::{Result, anyhow};
 use screeps::{Creep, SharedCreepProperties, StructureSpawn};
 use serde::{Deserialize, Serialize};
-use crate::entity::Entities;
-use crate::task::Task;
 
 pub fn run(creep: &Creep, memory: &mut Memory) -> Result<()> {
     let memory = memory
@@ -21,8 +21,8 @@ pub fn run(creep: &Creep, memory: &mut Memory) -> Result<()> {
     }
 }
 
-impl Actor for Creep{
-    fn plan(&self, entities: &Entities, memory: &mut Memory, tasks: &mut Vec<Task>) -> Result<()> {
+impl Actor for Creep {
+    fn plan(&self, memory: &mut Memory, tasks: &mut Tasks) -> Result<()> {
         todo!()
     }
 
