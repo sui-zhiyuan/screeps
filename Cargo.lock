@@ -222,6 +222,7 @@ name = "screeps-rust"
 version = "0.0.0"
 dependencies = [
  "anyhow",
+ "enum_dispatch",
  "fern",
  "gloo-utils",
  "js-sys",

@@ -34,7 +34,7 @@ impl Actor for StructureSpawn {
 
         let Some(task_id) = memory.income_task else {
             let task = tasks.new_energy_require(self, required_energy);
-            memory.income_task = Some(task.id());
+            memory.income_task = Some(task.task_id());
             memory.income_energy = task.energy;
             return Ok(());
         };
