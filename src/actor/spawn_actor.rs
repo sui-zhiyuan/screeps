@@ -4,9 +4,9 @@ use crate::actor::creep_actor::CreepMemory;
 use crate::actor::creep_builder::CreepBuilderMemory;
 use crate::actor::creep_harvester::CreepHarvesterMemory;
 use crate::actor::creep_upgrader::CreepUpgraderMemory;
-use crate::task::TaskTrait;
-use crate::task::{Task, TaskId, Tasks};
-use anyhow::{Result, anyhow, bail};
+use crate::task::{EnergyRequireTask, TaskTrait};
+use crate::task::{TaskId, Tasks};
+use anyhow::{Result, anyhow};
 use log::info;
 use screeps::ResourceType::Energy;
 use screeps::{Part, StructureSpawn, find, game};
@@ -39,18 +39,10 @@ impl Actor for StructureSpawn {
             return Ok(());
         };
 
-        let task = tasks
-            .get_mut(task_id)
-            .ok_or(anyhow!("missing task id {task_id}"))?;
+        let task: &mut EnergyRequireTask = tasks.get_mut::<EnergyRequireTask>(task_id)?;
 
-        match task {
-            Task::EnergyRequire(task) => {
-                task.energy += required_energy;
-                memory.income_energy = task.energy;
-            }
-            _ => bail!("unmatched task type {task:?}"),
-        }
-
+        task.energy += required_energy;
+        memory.income_energy = task.energy;
         Ok(())
     }
 

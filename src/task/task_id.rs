@@ -1,5 +1,5 @@
-use std::fmt::Display;
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 
 #[derive(
     Serialize, Deserialize, Debug, Default, Ord, PartialOrd, Eq, PartialEq, Hash, Copy, Clone,
@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 pub struct TaskId(u64);
 
 impl TaskId {
-    pub fn next(&self) -> TaskId {
+    pub(super) fn next(&self) -> TaskId {
         TaskId(self.0 + 1)
     }
 }

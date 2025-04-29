@@ -1,5 +1,5 @@
 use crate::impl_caster;
-use crate::task::{Caster, Task, TaskId, TaskTrait, Tasks};
+use crate::task::{Task, TaskId, TaskTrait, Tasks};
 use screeps::{HasId, ObjectId, StructureSpawn};
 
 // require energy
@@ -33,9 +33,6 @@ impl Tasks {
             energy,
         };
         self.insert(Task::EnergyRequire(task));
-        self.get(id)
-            .expect("insert just now")
-            .cast()
-            .expect("insert just now, should be no mismatch")
+        self.get(id).expect("task just installed")
     }
 }

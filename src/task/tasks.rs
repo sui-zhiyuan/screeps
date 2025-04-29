@@ -1,4 +1,4 @@
-use crate::task::TaskTrait;
+use crate::task::{DownCast, TaskTrait};
 use crate::task::{Task, TaskId};
 use anyhow::anyhow;
 use std::collections::{BTreeSet, HashMap};
@@ -12,15 +12,17 @@ pub struct Tasks {
 }
 
 impl Tasks {
-    pub fn get(&self, id: TaskId) -> anyhow::Result<&Task> {
-        self.tasks.get(&id).ok_or(anyhow!("missing task"))
+    pub fn get<T: DownCast>(&self, id: TaskId) -> anyhow::Result<&T> {
+        let task = self.tasks.get(&id).ok_or(anyhow!("missing task"))?;
+        DownCast::cast(task).ok_or(anyhow!("task type not match"))
     }
 
-    pub fn get_mut(&mut self, id: TaskId) -> Option<&mut Task> {
-        self.tasks.get_mut(&id)
+    pub fn get_mut<T: DownCast>(&mut self, id: TaskId) -> anyhow::Result<&mut T> {
+        let task = self.tasks.get_mut(&id).ok_or(anyhow!("missing task"))?;
+        DownCast::cast_mut(task).ok_or(anyhow!("task type not match"))
     }
 
-    pub fn insert(&mut self, task: Task) {
+    pub(super) fn insert(&mut self, task: Task) {
         let id = TaskTrait::task_id(&task);
         self.tasks.insert(id, task);
     }
