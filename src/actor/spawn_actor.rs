@@ -9,7 +9,7 @@ use crate::task::{Task, TaskId, Tasks};
 use anyhow::{Result, anyhow, bail};
 use log::info;
 use screeps::ResourceType::Energy;
-use screeps::{HasId, Part, StructureSpawn, find, game};
+use screeps::{Part, StructureSpawn, find, game};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Default)]
@@ -54,11 +54,12 @@ impl Actor for StructureSpawn {
         Ok(())
     }
 
-    fn run(&self, memory: &mut Memory) -> Result<()> {
+    fn run(&self, _memory: &mut Memory) -> Result<()> {
         todo!()
     }
 }
 
+#[allow(dead_code)]
 pub(crate) fn run(spawn: &StructureSpawn, memory: &mut Memory) -> Result<()> {
     if spawn.spawning().is_some() {
         info!("spawning...");

@@ -1,4 +1,3 @@
-use crate::actor::CreepMemoryTrait;
 use crate::actor::creep_actor::CreepMemory;
 use anyhow::anyhow;
 use screeps::{
@@ -21,6 +20,7 @@ enum State {
 }
 
 impl CreepUpgraderMemory {
+    #[allow(dead_code)]
     pub fn new_memory(spawn: &StructureSpawn, controller: &StructureController) -> CreepMemory {
         CreepMemory::Upgrader(CreepUpgraderMemory {
             spawn: spawn.id(),
@@ -30,38 +30,37 @@ impl CreepUpgraderMemory {
     }
 }
 
-impl CreepMemoryTrait for CreepUpgraderMemory {
-    fn run(&mut self, creep: &Creep) -> anyhow::Result<()> {
-        if creep.spawning() {
+#[allow(dead_code)]
+fn run(memory: &mut CreepUpgraderMemory, creep: &Creep) -> anyhow::Result<()> {
+    if creep.spawning() {
+        return Ok(());
+    }
+
+    if creep.store().get_used_capacity(Some(ResourceType::Energy)) == 0 {
+        let spawn = &memory.spawn.resolve().ok_or(anyhow!("spawn not found"))?;
+        if !creep.pos().is_near_to(spawn.pos()) {
+            creep.move_to(spawn)?;
+            return Ok(());
+        }
+        if creep.store().get_free_capacity(Some(ResourceType::Energy))
+            > spawn.store().get_used_capacity(Some(ResourceType::Energy)) as i32
+        {
             return Ok(());
         }
 
-        if creep.store().get_used_capacity(Some(ResourceType::Energy)) == 0 {
-            let spawn = &self.spawn.resolve().ok_or(anyhow!("spawn not found"))?;
-            if !creep.pos().is_near_to(spawn.pos()) {
-                creep.move_to(spawn)?;
-                return Ok(());
-            }
-            if creep.store().get_free_capacity(Some(ResourceType::Energy))
-                > spawn.store().get_used_capacity(Some(ResourceType::Energy)) as i32
-            {
-                return Ok(());
-            }
-
-            creep.withdraw(spawn, ResourceType::Energy, None)?;
-            Ok(())
-        } else {
-            let controller = &self
-                .controller
-                .resolve()
-                .ok_or(anyhow!("controller not found"))?;
-            if !creep.pos().is_near_to(controller.pos()) {
-                creep.move_to(controller)?;
-                return Ok(());
-            }
-
-            creep.upgrade_controller(controller)?;
-            Ok(())
+        creep.withdraw(spawn, ResourceType::Energy, None)?;
+        Ok(())
+    } else {
+        let controller = &memory
+            .controller
+            .resolve()
+            .ok_or(anyhow!("controller not found"))?;
+        if !creep.pos().is_near_to(controller.pos()) {
+            creep.move_to(controller)?;
+            return Ok(());
         }
+
+        creep.upgrade_controller(controller)?;
+        Ok(())
     }
 }

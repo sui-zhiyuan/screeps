@@ -1,4 +1,3 @@
-use crate::actor::CreepMemoryTrait;
 use crate::actor::creep_actor::CreepMemory;
 use anyhow::anyhow;
 use log::info;
@@ -15,6 +14,8 @@ pub struct CreepHarvesterMemory {
 }
 
 impl CreepHarvesterMemory {
+
+    #[allow(dead_code)]
     pub fn new_memory(source: &Source, spawn: &StructureSpawn) -> CreepMemory {
         CreepMemory::Harvester(CreepHarvesterMemory {
             source: source.id(),
@@ -23,31 +24,30 @@ impl CreepHarvesterMemory {
     }
 }
 
-impl CreepMemoryTrait for CreepHarvesterMemory {
-    fn run(&mut self, creep: &Creep) -> anyhow::Result<()> {
-        if creep.spawning() {
+#[allow(dead_code)]
+fn run(memory: &mut CreepHarvesterMemory, creep: &Creep) -> anyhow::Result<()> {
+    if creep.spawning() {
+        return Ok(());
+    }
+
+    if creep.store().get_free_capacity(Some(ResourceType::Energy)) > 0 {
+        info!("to source");
+        let source = &memory.source.resolve().ok_or(anyhow!("source not found"))?;
+        let result = creep.harvest(source);
+        if let Err(HarvestErrorCode::NotInRange) = result {
+            creep.move_to(source)?;
             return Ok(());
         }
-
-        if creep.store().get_free_capacity(Some(ResourceType::Energy)) > 0 {
-            info!("to source");
-            let source = &self.source.resolve().ok_or(anyhow!("source not found"))?;
-            let result = creep.harvest(source);
-            if let Err(HarvestErrorCode::NotInRange) = result {
-                creep.move_to(source)?;
-                return Ok(());
-            }
-            result?;
-        } else {
-            info!("to spawn");
-            let spawn = &self.spawn.resolve().ok_or(anyhow!("spawn not found"))?;
-            let result = creep.transfer(spawn, ResourceType::Energy, None);
-            if let Err(TransferErrorCode::NotInRange) = result {
-                creep.move_to(spawn)?;
-                return Ok(());
-            }
-            result?
+        result?;
+    } else {
+        info!("to spawn");
+        let spawn = &memory.spawn.resolve().ok_or(anyhow!("spawn not found"))?;
+        let result = creep.transfer(spawn, ResourceType::Energy, None);
+        if let Err(TransferErrorCode::NotInRange) = result {
+            creep.move_to(spawn)?;
+            return Ok(());
         }
-        Ok(())
+        result?
     }
+    Ok(())
 }

@@ -1,11 +1,13 @@
 use crate::impl_caster;
-use crate::task::{Task, TaskId, TaskTrait};
+use crate::task::{TaskId, TaskTrait};
 use screeps::{ObjectId, Source, StructureSpawn};
 
 #[derive(Debug)]
 pub struct BasicHarvestTask {
     id: TaskId,
+    #[allow(dead_code)]
     source: ObjectId<Source>,
+    #[allow(dead_code)]
     spawn: ObjectId<StructureSpawn>,
 }
 

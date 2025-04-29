@@ -6,7 +6,9 @@ use screeps::{HasId, ObjectId, StructureSpawn};
 #[derive(Debug)]
 pub struct EnergyRequireTask {
     id: TaskId,
+    #[allow(dead_code)]
     pub target: ObjectId<StructureSpawn>,
+    #[allow(dead_code)]
     pub energy: i32,
 }
 

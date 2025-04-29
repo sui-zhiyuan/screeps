@@ -5,7 +5,9 @@ use screeps::{ObjectId, StructureController, StructureSpawn};
 #[derive(Debug)]
 pub struct UpgradeTask {
     id: TaskId,
+    #[allow(dead_code)]
     spawn: ObjectId<StructureSpawn>,
+    #[allow(dead_code)]
     controller: ObjectId<StructureController>,
 }
 

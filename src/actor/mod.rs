@@ -1,8 +1,5 @@
 use anyhow::Result;
-use log::error;
-use screeps::game::creeps;
-use screeps::{Creep, SharedCreepProperties, StructureSpawn, game};
-use std::collections::HashSet;
+use screeps::{Creep, StructureSpawn};
 
 mod creep_actor;
 mod creep_builder;
@@ -12,7 +9,7 @@ mod spawn_actor;
 
 use crate::entity::Entities;
 use crate::memory::Memory;
-use crate::task::{Task, Tasks};
+use crate::task::Tasks;
 pub use creep_actor::CreepMemory;
 pub use spawn_actor::SpawnMemory;
 
@@ -28,8 +25,12 @@ pub fn run(entities: &Entities, memory: &mut Memory) {
     let creeps = entities.creeps.iter().map(|v| ActorEntity::from(v));
     let actors = spawns.chain(creeps).collect::<Vec<_>>();
 
-    for actor in actors {
+    for actor in actors.iter() {
         actor.plan(memory, &mut tasks).expect("todo");
+    }
+
+    for actor in actors.iter() {
+        actor.run(memory).expect("todo")
     }
 
     // let spawns = ctx.spawns.iter().map(|(name, spawn)| ()).collect();
@@ -51,10 +52,6 @@ pub fn run(entities: &Entities, memory: &mut Memory) {
     // }
     //
     // result
-}
-
-trait CreepMemoryTrait {
-    fn run(&mut self, creep: &Creep) -> anyhow::Result<()>;
 }
 
 enum ActorEntity<'a> {
