@@ -17,10 +17,11 @@ impl CreepHarvesterMemory {
 
     #[allow(dead_code)]
     pub fn new_memory(source: &Source, spawn: &StructureSpawn) -> CreepMemory {
-        CreepMemory::Harvester(CreepHarvesterMemory {
-            source: source.id(),
-            spawn: spawn.id(),
-        })
+        // CreepMemory::Harvester(CreepHarvesterMemory {
+        //     source: source.id(),
+        //     spawn: spawn.id(),
+        // })
+        todo!()
     }
 }
 

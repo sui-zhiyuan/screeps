@@ -6,12 +6,14 @@ mod creep_builder;
 mod creep_harvester;
 mod creep_upgrader;
 mod spawn_actor;
+mod room_actor;
 
 use crate::entity::Entities;
 use crate::memory::Memory;
 use crate::task::Tasks;
-pub use creep_actor::CreepMemory;
+pub use creep_actor::{CreepMemory , CreepClass};
 pub use spawn_actor::SpawnMemory;
+pub use room_actor::RoomMemory;
 
 trait Actor {
     fn plan(&self, memory: &mut Memory, tasks: &mut Tasks) -> Result<()>;

@@ -31,9 +31,14 @@ impl Actor for Creep {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(tag = "role")]
-pub enum CreepMemory {
-    Harvester(CreepHarvesterMemory),
-    Upgrader(CreepUpgraderMemory),
-    Builder(CreepBuilderMemory),
+pub struct CreepMemory {
+    pub class: CreepClass,
+    // Harvester(CreepHarvesterMemory),
+    // Upgrader(CreepUpgraderMemory),
+    // Builder(CreepBuilderMemory),
+}
+
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, Hash, Eq, PartialEq)]
+pub enum CreepClass {
+    Worker,
 }

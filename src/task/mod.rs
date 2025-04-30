@@ -4,6 +4,7 @@ mod energy_require_task;
 mod task_id;
 mod tasks;
 mod upgrade_task;
+mod creep_spawn_task;
 
 use crate::task::basic_harvest_task::BasicHarvestTask;
 use crate::task::build_task::BuildTask;
@@ -12,6 +13,7 @@ pub use energy_require_task::EnergyRequireTask;
 use enum_dispatch::enum_dispatch;
 pub use task_id::TaskId;
 pub use tasks::Tasks;
+use crate::task::creep_spawn_task::CreepSpawnTask;
 
 #[derive(Debug)]
 #[enum_dispatch(TaskTrait)]
@@ -19,6 +21,7 @@ pub enum Task {
     // requirements
     EnergyRequire(EnergyRequireTask),
     // tasks
+    CreepSpawn(CreepSpawnTask),
     BasicHarvest(BasicHarvestTask),
     Upgrade(UpgradeTask),
     Build(BuildTask),

@@ -1,4 +1,4 @@
-use crate::actor::{CreepMemory, SpawnMemory};
+use crate::actor::{CreepMemory, RoomMemory, SpawnMemory};
 use crate::entity::Entities;
 use anyhow::{Result, anyhow};
 use js_sys::JsString;
@@ -12,7 +12,7 @@ static MEMORY: Mutex<Option<Memory>> = Mutex::new(None);
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct Memory {
-    pub rooms: HashMap<String, ()>,
+    pub rooms: HashMap<String, RoomMemory>,
     pub spawns: HashMap<String, SpawnMemory>,
     pub creeps: HashMap<String, CreepMemory>,
     pub flags: HashMap<String, ()>,

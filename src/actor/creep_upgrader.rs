@@ -22,11 +22,12 @@ enum State {
 impl CreepUpgraderMemory {
     #[allow(dead_code)]
     pub fn new_memory(spawn: &StructureSpawn, controller: &StructureController) -> CreepMemory {
-        CreepMemory::Upgrader(CreepUpgraderMemory {
-            spawn: spawn.id(),
-            controller: controller.id(),
-            state: State::Loading,
-        })
+        // CreepMemory::Upgrader(CreepUpgraderMemory {
+        //     spawn: spawn.id(),
+        //     controller: controller.id(),
+        //     state: State::Loading,
+        // })
+        todo!()
     }
 }
 

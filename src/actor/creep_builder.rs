@@ -5,6 +5,7 @@ use screeps::{
     SharedCreepProperties, StructureSpawn, find,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::to_string;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CreepBuilderMemory {
@@ -14,10 +15,12 @@ pub struct CreepBuilderMemory {
 impl CreepBuilderMemory {
     #[allow(dead_code)]
     pub fn new_memory(spawn: &StructureSpawn) -> CreepMemory {
-        CreepMemory::Builder(CreepBuilderMemory {
-            spawn: spawn.id(),
-            target: None,
-        })
+        // CreepMemory::Builder(CreepBuilderMemory {
+        //     spawn: spawn.id(),
+        //     target: None,
+        // })
+        
+        todo!()
     }
 }
 
