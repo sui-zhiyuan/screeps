@@ -10,8 +10,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CreepHarvesterMemory {
-    source: ObjectId<Source>,
-    spawn: ObjectId<StructureSpawn>,
+    pub source: ObjectId<Source>,
+    pub spawn: ObjectId<StructureSpawn>,
 }
 
 impl CreepHarvesterMemory {

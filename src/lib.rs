@@ -9,7 +9,9 @@ use std::sync::Mutex;
 use wasm_bindgen::prelude::*;
 
 mod actor;
+mod entity;
 mod logging;
+mod memory;
 
 #[derive(Serialize, Deserialize, Default)]
 struct Memory {

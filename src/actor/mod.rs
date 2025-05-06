@@ -10,6 +10,17 @@ mod spawn_actor;
 
 use crate::Memory;
 pub use creep_actor::CreepMemory;
+pub use creep_harvester::CreepHarvesterMemory;
+
+pub struct RoomMemory();
+
+impl RoomMemory {
+    pub fn new() -> RoomMemory {
+        RoomMemory()
+    }
+}
+pub struct SpawnMemory();
+pub struct FlagMemory();
 
 #[derive(Default)]
 pub struct RunResult {
