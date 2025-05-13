@@ -20,7 +20,6 @@ pub fn run(creep: &Creep, memory: &mut Memory) -> Result<()> {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(tag = "role")]
 pub enum CreepMemory {
     Harvester(CreepHarvesterMemory),
     Upgrader(CreepUpgraderMemory),

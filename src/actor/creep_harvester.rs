@@ -1,17 +1,56 @@
 use crate::actor::CreepMemoryTrait;
 use crate::actor::creep_actor::CreepMemory;
-use anyhow::anyhow;
+use anyhow::{Error, anyhow};
 use log::info;
 use screeps::action_error_codes::{HarvestErrorCode, TransferErrorCode};
 use screeps::{
-    Creep, HasId, ObjectId, ResourceType, SharedCreepProperties, Source, StructureSpawn,
+    Creep, HasId, HasPosition, ObjectId, ResourceType, RoomName, SharedCreepProperties, Source,
+    StructureSpawn, find, game,
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(
+    into = "CreepHarvesterMemoryStore",
+    try_from = "CreepHarvesterMemoryStore"
+)]
 pub struct CreepHarvesterMemory {
     source: ObjectId<Source>,
     spawn: ObjectId<StructureSpawn>,
+}
+
+impl TryFrom<CreepHarvesterMemoryStore> for CreepHarvesterMemory {
+    type Error = Error;
+
+    fn try_from(value: CreepHarvesterMemoryStore) -> Result<Self, Self::Error> {
+        let source = value.source;
+        let spawn = game::spawns().get(value.spawn).expect("spawn not found");
+
+        Ok(CreepHarvesterMemory {
+            source,
+            spawn: spawn.id(),
+        })
+    }
+}
+
+impl Into<CreepHarvesterMemoryStore> for CreepHarvesterMemory {
+    fn into(self) -> CreepHarvesterMemoryStore {
+        let source = self.source;
+
+        let spawn = self
+            .spawn
+            .resolve()
+            .expect("CreepHarvesterMemoryStore doesn't exist")
+            .name()
+            .to_string();
+        CreepHarvesterMemoryStore { source, spawn }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+struct CreepHarvesterMemoryStore {
+    source: ObjectId<Source>,
+    spawn: String,
 }
 
 impl CreepHarvesterMemory {
