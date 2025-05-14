@@ -25,20 +25,12 @@ fn game_loop_inner() -> Result<()> {
         logging::setup_logging(logging::Info);
     });
 
-    // let mut memory_lock = MEMORY
-    //     .lock()
-    //     .map_err(|e| anyhow!("memory lock err: {}", e))?;
-    // let memory = match memory_lock.take() {
-    //     Some(memory) => memory,
-    //     None => load_memory()?,
-    // };
-
-    let (memory_guard , mut memory) = Memory::load()?;
 
     info!("loop starting! CPU: {}", game::cpu::get_used());
 
-    actor::run(&mut memory);
-    memory.store(memory_guard)?;
+    actor::run();
+    
+    Memory::store()?;
 
     info!("done! cpu: {}", game::cpu::get_used());
 

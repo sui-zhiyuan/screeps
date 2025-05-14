@@ -5,9 +5,10 @@ use log::info;
 use screeps::{SharedCreepProperties, game, raw_memory};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-use std::sync::{Mutex, MutexGuard};
+use std::ops::DerefMut;
+use std::sync::{Mutex, MutexGuard, OnceLock};
 
-static MEMORY: Mutex<Option<Memory>> = Mutex::new(None);
+static MEMORY: OnceLock<Result<Mutex<Memory>>> = OnceLock::new();
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct Memory {
@@ -18,27 +19,30 @@ pub struct Memory {
 }
 
 impl Memory {
-    pub fn load() -> Result<(MutexGuard<'static, Option<Memory>>, Memory)> {
-        let mut memory_lock = MEMORY
-            .lock()
-            .map_err(|e| anyhow!("memory lock err: {}", e))?;
-        let memory = match memory_lock.take() {
-            Some(memory) => memory,
-            None => Self::load_memory()?,
-        };
-
-        Ok((memory_lock, memory))
-    }
-
-    pub fn store(mut self, mut lock: MutexGuard<Option<Memory>>) -> Result<()> {
-        self.clean_up_memory();
-        self.store_memory()?;
-        // write back memory
-        _ = lock.insert(self);
+    pub fn access(f: impl FnOnce(&mut Memory)) -> Result<()> {
+        let mut guard = Self::get_guard()?;
+        let v = guard.deref_mut();
+        f(v);
         Ok(())
     }
 
-    fn load_memory() -> Result<Memory> {
+    pub fn store() -> Result<()> {
+        let mut guard = Self::get_guard()?;
+        guard.clean_up_memory();
+        guard.store_memory()?;
+        Ok(())
+    }
+
+    fn get_guard() -> Result<MutexGuard<'static, Memory>> {
+        MEMORY
+            .get_or_init(|| Self::load().map(Mutex::new))
+            .as_ref()
+            .map_err(|e| anyhow!("load memory error: {}", e))?
+            .lock()
+            .map_err(|e| anyhow!("memory lock err: {}", e))
+    }
+
+    fn load() -> Result<Memory> {
         info!("loading memory");
         let js_memory = raw_memory::get();
         let json_memory: String = js_memory.into();

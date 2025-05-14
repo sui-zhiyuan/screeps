@@ -4,8 +4,8 @@ use anyhow::{Error, anyhow};
 use log::info;
 use screeps::action_error_codes::{HarvestErrorCode, TransferErrorCode};
 use screeps::{
-    Creep, HasId, HasPosition, ObjectId, ResourceType, RoomName, SharedCreepProperties, Source,
-    StructureSpawn, find, game,
+    Creep, HasId, ObjectId, ResourceType, SharedCreepProperties, Source,
+    StructureSpawn, game,
 };
 use serde::{Deserialize, Serialize};
 

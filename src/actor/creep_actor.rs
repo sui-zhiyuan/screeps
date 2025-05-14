@@ -7,19 +7,28 @@ use anyhow::{Result, anyhow};
 use screeps::{Creep, SharedCreepProperties};
 use serde::{Deserialize, Serialize};
 
-pub fn run(creep: &Creep, memory: &mut Memory) -> Result<()> {
-    let memory = memory
-        .creeps
-        .get_mut(&creep.name())
-        .ok_or(anyhow!("memory not found"))?;
+pub fn run(creep: &Creep) -> Result<()> {
+    let mut memory = None;
+
+    Memory::access(|m| {
+        memory = m.creeps.get(&creep.name()).map(|v| v.clone());
+    })?;
+
+    let mut memory = memory.ok_or_else(|| anyhow!("memory not found"))?;
     match memory {
-        CreepMemory::Harvester(memory) => memory.run(creep),
-        CreepMemory::Upgrader(memory) => memory.run(creep),
-        CreepMemory::Builder(memory) => memory.run(creep),
-    }
+        CreepMemory::Harvester(ref mut memory) => memory.run(creep),
+        CreepMemory::Upgrader(ref mut memory) => memory.run(creep),
+        CreepMemory::Builder(ref mut memory) => memory.run(creep),
+    }?;
+
+    Memory::access(|m1| {
+        m1.creeps.insert(creep.name(), memory);
+    })?;
+
+    Ok(())
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum CreepMemory {
     Harvester(CreepHarvesterMemory),
     Upgrader(CreepUpgraderMemory),

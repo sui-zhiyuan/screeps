@@ -7,18 +7,17 @@ mod creep_harvester;
 mod creep_upgrader;
 mod spawn_actor;
 
-use crate::Memory;
 pub use creep_actor::CreepMemory;
 
-pub fn run(memory: &mut Memory) {
+pub fn run() {
     for s in game::spawns().values() {
-        if let Err(e) = spawn_actor::run(&s, memory) {
+        if let Err(e) = spawn_actor::run(&s) {
             error!("spawn running error {}", e);
         }
     }
 
     for c in game::creeps().values() {
-        if let Err(e) = creep_actor::run(&c, memory) {
+        if let Err(e) = creep_actor::run(&c) {
             error!("creep run error {}", e);
         }
     }

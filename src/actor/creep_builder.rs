@@ -7,7 +7,7 @@ use screeps::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CreepBuilderMemory {
     spawn: ObjectId<StructureSpawn>,
     target: Option<ObjectId<ConstructionSite>>,

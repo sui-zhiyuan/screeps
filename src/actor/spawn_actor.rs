@@ -8,7 +8,7 @@ use crate::actor::creep_builder::CreepBuilderMemory;
 use crate::actor::creep_harvester::CreepHarvesterMemory;
 use crate::actor::creep_upgrader::CreepUpgraderMemory;
 
-pub(crate) fn run(spawn: &StructureSpawn, memory: &mut Memory) -> Result<()> {
+pub(crate) fn run(spawn: &StructureSpawn) -> Result<()> {
     if spawn.spawning().is_some() {
         info!("spawning...");
         return Ok(());
@@ -30,7 +30,9 @@ pub(crate) fn run(spawn: &StructureSpawn, memory: &mut Memory) -> Result<()> {
     }
 
     spawn.spawn_creep(&structure.body, &structure.name)?;
-    memory.creeps.insert(structure.name, structure.memory);
+    Memory::access(|memory| {
+        memory.creeps.insert(structure.name, structure.memory);
+    })?;
     Ok(())
 }
 

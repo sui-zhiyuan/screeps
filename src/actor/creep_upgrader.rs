@@ -7,14 +7,14 @@ use screeps::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CreepUpgraderMemory {
     spawn: ObjectId<StructureSpawn>,
     controller: ObjectId<StructureController>,
     state: State,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 enum State {
     Loading,
     Upgrading,
