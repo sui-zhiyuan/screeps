@@ -1,14 +1,14 @@
+use crate::memory::Memory;
+use ::tracing::{error, info};
 use anyhow::Result;
-use log::*;
 use screeps::game;
 use wasm_bindgen::prelude::*;
-use crate::memory::Memory;
 
 mod actor;
-mod logging;
 mod memory;
+mod tracing;
 
-static INIT_LOGGING: std::sync::Once = std::sync::Once::new();
+// static INIT_LOGGING: std::sync::Once = std::sync::Once::new();
 
 // add wasm_bindgen to any function you would like to expose for call from js
 // to use a reserved name as a function name, use `js_name`:
@@ -20,16 +20,12 @@ pub fn game_loop() {
 }
 
 fn game_loop_inner() -> Result<()> {
-    INIT_LOGGING.call_once(|| {
-        // show all output of Info level, adjust as needed
-        logging::setup_logging(logging::Info);
-    });
-
+    tracing::init();
 
     info!("loop starting! CPU: {}", game::cpu::get_used());
 
     actor::run();
-    
+
     Memory::store()?;
 
     info!("done! cpu: {}", game::cpu::get_used());

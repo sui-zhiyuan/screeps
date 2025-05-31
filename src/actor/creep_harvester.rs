@@ -1,13 +1,12 @@
 use crate::actor::CreepMemoryTrait;
 use crate::actor::creep_actor::CreepMemory;
 use anyhow::{Error, anyhow};
-use log::info;
 use screeps::action_error_codes::{HarvestErrorCode, TransferErrorCode};
 use screeps::{
-    Creep, HasId, ObjectId, ResourceType, SharedCreepProperties, Source,
-    StructureSpawn, game,
+    Creep, HasId, ObjectId, ResourceType, SharedCreepProperties, Source, StructureSpawn, game,
 };
 use serde::{Deserialize, Serialize};
+use tracing::info;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(
@@ -33,11 +32,11 @@ impl TryFrom<CreepHarvesterMemoryStore> for CreepHarvesterMemory {
     }
 }
 
-impl Into<CreepHarvesterMemoryStore> for CreepHarvesterMemory {
-    fn into(self) -> CreepHarvesterMemoryStore {
-        let source = self.source;
+impl From<CreepHarvesterMemory> for CreepHarvesterMemoryStore {
+    fn from(value: CreepHarvesterMemory) -> Self {
+        let source = value.source;
 
-        let spawn = self
+        let spawn = value
             .spawn
             .resolve()
             .expect("CreepHarvesterMemoryStore doesn't exist")

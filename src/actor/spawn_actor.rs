@@ -1,5 +1,5 @@
 use anyhow::{Result, anyhow};
-use log::info;
+use tracing::info;
 use screeps::{Part, StructureSpawn, find, game};
 
 use crate::Memory;

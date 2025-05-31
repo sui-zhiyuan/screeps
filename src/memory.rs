@@ -1,7 +1,7 @@
 use crate::actor::CreepMemory;
 use anyhow::{Result, anyhow};
 use js_sys::JsString;
-use log::info;
+use tracing::info;
 use screeps::{SharedCreepProperties, game, raw_memory};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};

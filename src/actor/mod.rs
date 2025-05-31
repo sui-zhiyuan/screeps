@@ -1,4 +1,4 @@
-use log::error;
+use tracing::error;
 use screeps::{Creep, game};
 
 mod creep_actor;

@@ -11,7 +11,7 @@ pub fn run(creep: &Creep) -> Result<()> {
     let mut memory = None;
 
     Memory::access(|m| {
-        memory = m.creeps.get(&creep.name()).map(|v| v.clone());
+        memory = m.creeps.get(&creep.name()).cloned();
     })?;
 
     let mut memory = memory.ok_or_else(|| anyhow!("memory not found"))?;
