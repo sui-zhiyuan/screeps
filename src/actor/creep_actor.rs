@@ -8,20 +8,16 @@ use screeps::{Creep, SharedCreepProperties};
 use serde::{Deserialize, Serialize};
 
 pub fn run(creep: &Creep) -> Result<()> {
-    let mut memory = None;
+    let mut memory = Memory::with(|m| m.creeps.get(&creep.name()).cloned())?
+        .ok_or_else(|| anyhow!("memory not found"))?;
 
-    Memory::access(|m| {
-        memory = m.creeps.get(&creep.name()).cloned();
-    })?;
-
-    let mut memory = memory.ok_or_else(|| anyhow!("memory not found"))?;
     match memory {
         CreepMemory::Harvester(ref mut memory) => memory.run(creep),
         CreepMemory::Upgrader(ref mut memory) => memory.run(creep),
         CreepMemory::Builder(ref mut memory) => memory.run(creep),
     }?;
 
-    Memory::access(|m1| {
+    Memory::with(|m1| {
         m1.creeps.insert(creep.name(), memory);
     })?;
 

@@ -1,14 +1,14 @@
 use crate::actor::CreepMemory;
 use anyhow::{Result, anyhow};
 use js_sys::JsString;
-use tracing::info;
 use screeps::{SharedCreepProperties, game, raw_memory};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::ops::DerefMut;
-use std::sync::{Mutex, MutexGuard, OnceLock};
+use std::sync::{LazyLock, Mutex, MutexGuard};
+use tracing::info;
 
-static MEMORY: OnceLock<Result<Mutex<Memory>>> = OnceLock::new();
+static MEMORY: LazyLock<Result<Mutex<Memory>>> = LazyLock::new(|| Memory::load().map(Mutex::new));
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct Memory {
@@ -19,11 +19,10 @@ pub struct Memory {
 }
 
 impl Memory {
-    pub fn access(f: impl FnOnce(&mut Memory)) -> Result<()> {
+    pub fn with<TR>(f: impl FnOnce(&mut Memory) -> TR) -> Result<TR> {
         let mut guard = Self::get_guard()?;
         let v = guard.deref_mut();
-        f(v);
-        Ok(())
+        Ok(f(v))
     }
 
     pub fn store() -> Result<()> {
@@ -35,7 +34,6 @@ impl Memory {
 
     fn get_guard() -> Result<MutexGuard<'static, Memory>> {
         MEMORY
-            .get_or_init(|| Self::load().map(Mutex::new))
             .as_ref()
             .map_err(|e| anyhow!("load memory error: {}", e))?
             .lock()

@@ -7,7 +7,6 @@ use wasm_bindgen::prelude::*;
 mod actor;
 mod memory;
 mod tracing;
-
 // static INIT_LOGGING: std::sync::Once = std::sync::Once::new();
 
 // add wasm_bindgen to any function you would like to expose for call from js

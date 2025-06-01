@@ -30,7 +30,7 @@ pub(crate) fn run(spawn: &StructureSpawn) -> Result<()> {
     }
 
     spawn.spawn_creep(&structure.body, &structure.name)?;
-    Memory::access(|memory| {
+    Memory::with(|memory| {
         memory.creeps.insert(structure.name, structure.memory);
     })?;
     Ok(())
