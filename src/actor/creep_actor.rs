@@ -1,14 +1,14 @@
-use crate::Memory;
 use crate::actor::CreepMemoryTrait;
 use crate::actor::creep_builder::CreepBuilderMemory;
 use crate::actor::creep_harvester::CreepHarvesterMemory;
 use crate::actor::creep_upgrader::CreepUpgraderMemory;
+use crate::memory;
 use anyhow::{Result, anyhow};
 use screeps::{Creep, SharedCreepProperties};
 use serde::{Deserialize, Serialize};
 
 pub fn run(creep: &Creep) -> Result<()> {
-    let mut memory = Memory::with(|m| m.creeps.get(&creep.name()).cloned())?
+    let mut memory = memory::with(|m| m.creeps.get(&creep.name()).cloned())?
         .ok_or_else(|| anyhow!("memory not found"))?;
 
     match memory {
@@ -17,7 +17,7 @@ pub fn run(creep: &Creep) -> Result<()> {
         CreepMemory::Builder(ref mut memory) => memory.run(creep),
     }?;
 
-    Memory::with(|m1| {
+    memory::with(|m1| {
         m1.creeps.insert(creep.name(), memory);
     })?;
 

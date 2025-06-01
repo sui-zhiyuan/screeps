@@ -1,4 +1,5 @@
 use crate::actor::CreepMemory;
+use crate::task::TaskSerializePhantom;
 use anyhow::{Result, anyhow};
 use js_sys::JsString;
 use screeps::{SharedCreepProperties, game, raw_memory};
@@ -10,26 +11,37 @@ use tracing::info;
 
 static MEMORY: LazyLock<Result<Mutex<Memory>>> = LazyLock::new(|| Memory::load().map(Mutex::new));
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize , Default)]
 pub struct Memory {
     pub rooms: HashMap<String, ()>,
     pub spawns: HashMap<String, ()>,
     pub creeps: HashMap<String, CreepMemory>,
     pub flags: HashMap<String, ()>,
+    #[serde(default)]
+    pub tasks: TaskSerializePhantom,
+}
+
+// TODO make f return Result
+pub fn with<TR>(f: impl FnOnce(&mut Memory) -> TR) -> Result<TR> {
+    let mut guard = Memory::get_guard()?;
+    let v = guard.deref_mut();
+    Ok(f(v))
+}
+
+pub fn store() -> Result<()> {
+    let mut guard = Memory::get_guard()?;
+    guard.clean_up_memory();
+    guard.store_memory()?;
+    Ok(())
 }
 
 impl Memory {
-    pub fn with<TR>(f: impl FnOnce(&mut Memory) -> TR) -> Result<TR> {
-        let mut guard = Self::get_guard()?;
-        let v = guard.deref_mut();
-        Ok(f(v))
-    }
-
-    pub fn store() -> Result<()> {
-        let mut guard = Self::get_guard()?;
-        guard.clean_up_memory();
-        guard.store_memory()?;
-        Ok(())
+    fn load() -> Result<Memory> {
+        info!("loading memory");
+        let js_memory = raw_memory::get();
+        let json_memory: String = js_memory.into();
+        let memory: Memory = serde_json::from_str(&json_memory)?;
+        Ok(memory)
     }
 
     fn get_guard() -> Result<MutexGuard<'static, Memory>> {
@@ -38,14 +50,6 @@ impl Memory {
             .map_err(|e| anyhow!("load memory error: {}", e))?
             .lock()
             .map_err(|e| anyhow!("memory lock err: {}", e))
-    }
-
-    fn load() -> Result<Memory> {
-        info!("loading memory");
-        let js_memory = raw_memory::get();
-        let json_memory: String = js_memory.into();
-        let memory: Memory = serde_json::from_str(&json_memory)?;
-        Ok(memory)
     }
 
     fn clean_up_memory(&mut self) {
