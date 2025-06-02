@@ -64,6 +64,7 @@ mod tests {
             assert_eq!(v.0.len(), 0);
 
             v.0.push(Task::NoTask);
+            Ok(())
         })
         .unwrap();
 
@@ -84,7 +85,8 @@ mod tests {
             v.0.push(CreepSpawnTask::new_task(
                 RoomName::new("E1N3").unwrap(),
                 CreepClass::Worker,
-            ))
+            ));
+            Ok(())
         })
         .unwrap();
 
