@@ -51,6 +51,7 @@ impl Default for TaskSerializePhantom {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::actor::CreepClass;
     use crate::memory::Memory;
     use crate::task::CreepSpawnTask;
     use screeps::RoomName;
@@ -67,27 +68,28 @@ mod tests {
         .unwrap();
 
         let json_memory = serde_json::to_string(&memory).unwrap();
-        let result = r#"{"rooms":{},"spawns":{},"creeps":{},"flags":{},"tasks":["NoTask"]}"#;
+        let result = r#"{"rooms":{},"spawns":{},"creeps":{},"flags":{},"tasks":[{"t":"NoTask"}]}"#;
         assert_eq!(result, json_memory);
     }
 
     #[test]
     fn test_serialize() {
-        let value = r#"{"rooms":{},"spawns":{},"creeps":{},"flags":{},"tasks":["NoTask"]}"#;
+        let value = r#"{"rooms":{},"spawns":{},"creeps":{},"flags":{},"tasks":[{"t":"NoTask"}]}"#;
         let memory: Memory = serde_json::from_str(value).unwrap();
         Tasks::with(|v| {
             assert_eq!(v.0.len(), 1);
             assert_eq!(Task::NoTask, v.0[0]);
 
             v.0.pop();
-            v.0.push(Task::CreepSpawn(CreepSpawnTask {
-                room_name: RoomName::new("E1N3").unwrap(),
-            }))
+            v.0.push(CreepSpawnTask::new_task(
+                RoomName::new("E1N3").unwrap(),
+                CreepClass::Worker,
+            ))
         })
         .unwrap();
 
         let json_memory = serde_json::to_string(&memory).unwrap();
-        let result = r#"{"rooms":{},"spawns":{},"creeps":{},"flags":{},"tasks":[{"CreepSpawn":{"room_name":"E1N3"}}]}"#;
+        let result = r#"{"rooms":{},"spawns":{},"creeps":{},"flags":{},"tasks":[{"t":"CreepSpawn","room":"E1N3","creep_class":"Worker"}]}"#;
         assert_eq!(result, json_memory);
     }
 }

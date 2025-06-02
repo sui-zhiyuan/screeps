@@ -225,6 +225,7 @@ name = "screeps-rust"
 version = "0.0.0"
 dependencies = [
  "anyhow",
+ "enum_dispatch",
  "gloo-utils",
  "js-sys",
  "screeps-game-api",

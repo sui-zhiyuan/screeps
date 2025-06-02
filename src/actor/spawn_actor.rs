@@ -1,10 +1,13 @@
+use crate::actor::Actor;
 use crate::actor::creep_actor::CreepMemory;
 use crate::actor::creep_builder::CreepBuilderMemory;
 use crate::actor::creep_harvester::CreepHarvesterMemory;
 use crate::actor::creep_upgrader::CreepUpgraderMemory;
-use crate::memory;
+use crate::memory::Memory;
+use crate::task::{Task, TaskId};
 use anyhow::{Result, anyhow};
-use screeps::{Part, StructureSpawn, find, game};
+use screeps::{Part, RoomName, StructureSpawn, find, game};
+use serde::{Deserialize, Serialize};
 use tracing::info;
 
 pub(crate) fn run(spawn: &StructureSpawn) -> Result<()> {
@@ -29,8 +32,9 @@ pub(crate) fn run(spawn: &StructureSpawn) -> Result<()> {
     }
 
     spawn.spawn_creep(&structure.body, &structure.name)?;
-    memory::with(|memory| {
+    Memory::with(|memory| {
         memory.creeps.insert(structure.name, structure.memory);
+        Ok(())
     })?;
     Ok(())
 }
@@ -81,5 +85,44 @@ impl CreepStructure {
 
     fn cost(&self) -> u32 {
         self.body.iter().map(|p| p.cost()).sum()
+    }
+}
+
+pub struct SpawnMemory {
+    spawn_task: TaskId,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
+pub struct CreepSpawnTask {
+    room: RoomName,
+    creep_class: CreepClass,
+}
+
+impl CreepSpawnTask {
+    pub fn new_task(room: RoomName, creep_class: CreepClass) -> Task {
+        Task::CreepSpawn(CreepSpawnTask { room, creep_class })
+    }
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
+pub enum CreepClass {
+    Worker,
+}
+
+impl Actor for StructureSpawn {
+    fn name(&self) -> String {
+        // TODO
+        "todo spawn".to_string()
+    }
+    fn plan(&self) -> Result<()> {
+        Ok(())
+    }
+
+    fn assign(&self) -> Result<()> {
+        Ok(())
+    }
+
+    fn run(&self) -> Result<()> {
+        todo!()
     }
 }

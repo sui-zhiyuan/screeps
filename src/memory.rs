@@ -1,19 +1,20 @@
-use crate::actor::CreepMemory;
+use crate::actor::{CreepMemory, RoomMemory};
 use crate::task::TaskSerializePhantom;
 use anyhow::{Result, anyhow};
 use js_sys::JsString;
-use screeps::{SharedCreepProperties, game, raw_memory};
+use screeps::{Room, RoomName, SharedCreepProperties, game, raw_memory};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::ops::DerefMut;
 use std::sync::{LazyLock, Mutex, MutexGuard};
 use tracing::info;
 
-static MEMORY: LazyLock<Result<Mutex<Memory>>> = LazyLock::new(|| Memory::load().map(Mutex::new));
+static MEMORY: LazyLock<Result<Mutex<Memory>>> =
+    LazyLock::new(|| Memory::load_from_raw().map(Mutex::new));
 
-#[derive(Serialize, Deserialize , Default)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct Memory {
-    pub rooms: HashMap<String, ()>,
+    pub rooms: HashMap<RoomName, RoomMemory>,
     pub spawns: HashMap<String, ()>,
     pub creeps: HashMap<String, CreepMemory>,
     pub flags: HashMap<String, ()>,
@@ -21,22 +22,22 @@ pub struct Memory {
     pub tasks: TaskSerializePhantom,
 }
 
-// TODO make f return Result
-pub fn with<TR>(f: impl FnOnce(&mut Memory) -> TR) -> Result<TR> {
-    let mut guard = Memory::get_guard()?;
-    let v = guard.deref_mut();
-    Ok(f(v))
-}
-
-pub fn store() -> Result<()> {
-    let mut guard = Memory::get_guard()?;
-    guard.clean_up_memory();
-    guard.store_memory()?;
-    Ok(())
-}
-
 impl Memory {
-    fn load() -> Result<Memory> {
+    // TODO make f return Result
+    pub fn with<TR>(f: impl FnOnce(&mut Memory) -> Result<TR>) -> Result<TR> {
+        let mut guard = Memory::get_guard()?;
+        let v = guard.deref_mut();
+        f(v)
+    }
+
+    pub fn store_to_raw() -> Result<()> {
+        let mut guard = Memory::get_guard()?;
+        guard.clean_up_memory();
+        guard.store_memory()?;
+        Ok(())
+    }
+
+    fn load_from_raw() -> Result<Memory> {
         info!("loading memory");
         let js_memory = raw_memory::get();
         let json_memory: String = js_memory.into();
@@ -65,5 +66,31 @@ impl Memory {
         let js_memory = JsString::from(json_memory);
         raw_memory::set(&js_memory);
         Ok(())
+    }
+}
+
+pub trait MemoryAccessor<TEntity> {
+    type TMemory: Clone;
+
+    fn with<TR>(e: &TEntity, f: impl FnOnce(&mut Self::TMemory) -> Result<TR>) -> Result<TR>;
+    fn load(e: &TEntity) -> Result<Self::TMemory> {
+        Self::with(e, |memory| Ok(memory.clone()))
+    }
+    fn store(e: &TEntity, memory: Self::TMemory) -> Result<()> {
+        Self::with(e, |m| {
+            *m = memory;
+            Ok(())
+        })
+    }
+}
+
+impl MemoryAccessor<Room> for Memory {
+    type TMemory = RoomMemory;
+
+    fn with<TR>(e: &Room, f: impl FnOnce(&mut Self::TMemory) -> Result<TR>) -> Result<TR> {
+        Memory::with(|memory| {
+            let m = memory.rooms.entry(e.name()).or_default();
+            f(m)
+        })
     }
 }
