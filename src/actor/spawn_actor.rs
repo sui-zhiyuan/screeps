@@ -3,14 +3,14 @@ use crate::actor::creep_actor::CreepMemory;
 use crate::actor::creep_builder::CreepBuilderMemory;
 use crate::actor::creep_harvester::CreepHarvesterMemory;
 use crate::actor::creep_upgrader::CreepUpgraderMemory;
-use crate::memory::Memory;
-use crate::task::{Task, TaskId};
+use crate::context::Context;
+use crate::memory::{Task, TaskId};
 use anyhow::{Result, anyhow};
 use screeps::{Part, RoomName, StructureSpawn, find, game};
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
-pub(crate) fn run(spawn: &StructureSpawn) -> Result<()> {
+pub(crate) fn run(ctx: &Context, spawn: &StructureSpawn) -> Result<()> {
     if spawn.spawning().is_some() {
         info!("spawning...");
         return Ok(());
@@ -32,10 +32,8 @@ pub(crate) fn run(spawn: &StructureSpawn) -> Result<()> {
     }
 
     spawn.spawn_creep(&structure.body, &structure.name)?;
-    Memory::with(|memory| {
-        memory.creeps.insert(structure.name, structure.memory);
-        Ok(())
-    })?;
+    ctx.memory()
+        .store_creep_memory(&structure.name, structure.memory);
     Ok(())
 }
 
@@ -114,15 +112,16 @@ impl Actor for StructureSpawn {
         // TODO
         "todo spawn".to_string()
     }
-    fn plan(&self) -> Result<()> {
+    fn plan(&self, _: &Context) -> Result<()> {
         Ok(())
     }
 
-    fn assign(&self) -> Result<()> {
+    fn assign(&self, _: &Context) -> Result<()> {
         Ok(())
     }
 
-    fn run(&self) -> Result<()> {
-        todo!()
+    fn run(&self, _: &Context) -> Result<()> {
+        // TODO
+        Ok(())
     }
 }

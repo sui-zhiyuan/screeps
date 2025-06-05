@@ -1,6 +1,6 @@
 use crate::actor::{Actor, CreepClass, CreepSpawnTask};
-use crate::memory::{Memory, MemoryAccessor};
-use crate::task::{TaskId, Tasks};
+use crate::context::Context;
+use crate::memory::{MemoryAccessor, TaskId};
 use anyhow::Result;
 use screeps::Room;
 use serde::{Deserialize, Serialize};
@@ -16,23 +16,25 @@ impl Actor for Room {
         self.name().to_string()
     }
 
-    fn plan(&self) -> Result<()> {
+    fn plan(&self, ctx: &Context) -> Result<()> {
         info!("room planning");
-        let mut memory = Memory::load(self)?;
+        let mut memory = ctx.memory().load(self);
         if memory.spawn_task.is_some() {
             return Ok(());
         }
-        let task_id = Tasks::add(CreepSpawnTask::new_task(self.name(), CreepClass::Worker))?;
+        let task_id = ctx
+            .tasks()
+            .add(CreepSpawnTask::new_task(self.name(), CreepClass::Worker));
         memory.spawn_task.replace(task_id);
-        Memory::store(self, memory)?;
+        ctx.memory().store(self, memory);
         Ok(())
     }
 
-    fn assign(&self) -> Result<()> {
+    fn assign(&self, _: &Context) -> Result<()> {
         Ok(())
     }
 
-    fn run(&self) -> Result<()> {
+    fn run(&self, _: &Context) -> Result<()> {
         Ok(())
     }
 }
