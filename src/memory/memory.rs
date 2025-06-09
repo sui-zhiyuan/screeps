@@ -9,7 +9,7 @@ pub trait MemoryAccessor<TEntity> {
     fn load(&self, e: &TEntity) -> Self::TMemory {
         self.with(e, |memory| memory.clone())
     }
-    fn store(&self, e: &TEntity, memory: Self::TMemory) -> () {
+    fn store(&self, e: &TEntity, memory: Self::TMemory) {
         self.with(e, |m| *m = memory)
     }
 }

@@ -1,10 +1,12 @@
+use crate::actor::{CreepMemory, RoomMemorySerialize};
+use crate::context::Context;
 use crate::memory::{Memory, MemoryInner, Task, Tasks};
 use anyhow::Result;
 use js_sys::JsString;
-use screeps::{SharedCreepProperties, game, raw_memory};
+use screeps::{RoomName, SharedCreepProperties, game, raw_memory};
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 impl Memory {
     pub fn load_from_raw() -> Result<(Memory, Tasks)> {
@@ -16,9 +18,10 @@ impl Memory {
         Ok((memory, tasks))
     }
 
-    pub fn store_to_raw(memory: &Memory, tasks: &Tasks) -> Result<()> {
+    pub fn store_to_raw(ctx: &Context, memory: &Memory, tasks: &Tasks) -> Result<()> {
         let memory = &mut *memory.0.borrow_mut();
         memory.clean_up_memory();
+        let memory = &memory.to_serialize(ctx);
         let tasks = &*tasks.0.borrow();
         let full_memory = MemorySerialize { memory, tasks };
         let js_value = serde_json::to_string(&full_memory)?;
@@ -46,18 +49,42 @@ struct MemoryDeserialize {
     tasks: Vec<Task>,
 }
 
+impl MemoryInner {
+    fn to_serialize<'a>(&'a self, ctx: &'a Context) -> MemoryInnerSerialize {
+        MemoryInnerSerialize {
+            rooms: self
+                .rooms
+                .iter()
+                .map(|(&name, value)| (name, value.to_serialize(ctx)))
+                .collect(),
+            spawns: self.spawns.clone(),
+            creeps: self.creeps.clone(),
+            flags: self.flags.clone(),
+        }
+    }
+}
+
 #[derive(Serialize)]
 struct MemorySerialize<'a> {
     #[serde(flatten)]
-    memory: &'a MemoryInner,
+    memory: &'a MemoryInnerSerialize,
     tasks: &'a Vec<Task>,
+}
+
+#[derive(Serialize)]
+struct MemoryInnerSerialize {
+    rooms: HashMap<RoomName, RoomMemorySerialize>,
+    spawns: HashMap<String, ()>,
+    creeps: HashMap<String, CreepMemory>,
+    flags: HashMap<String, ()>,
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::actor::{CreepClass, CreepSpawnTask};
-    
+
+    use crate::memory::NoTask;
     use screeps::RoomName;
 
     #[test]
@@ -66,10 +93,11 @@ mod tests {
         let MemoryDeserialize { memory, mut tasks } = serde_json::from_str(&value).unwrap();
 
         assert_eq!(tasks.len(), 0);
-        tasks.push(Task::NoTask);
+        tasks.push(Task::NoTask(NoTask {}));
 
+        let ctx = Context::default();
         let full_memory = MemorySerialize {
-            memory: &memory,
+            memory: &memory.to_serialize(&ctx),
             tasks: &tasks,
         };
         let json_memory = serde_json::to_string(&full_memory).unwrap();
@@ -83,7 +111,7 @@ mod tests {
         let MemoryDeserialize { memory, mut tasks } = serde_json::from_str(&value).unwrap();
 
         assert_eq!(tasks.len(), 1);
-        assert_eq!(Task::NoTask, tasks[0]);
+        assert_eq!(Task::NoTask(NoTask {}), tasks[0]);
 
         tasks.pop();
         tasks.push(CreepSpawnTask::new_task(
@@ -91,8 +119,9 @@ mod tests {
             CreepClass::Worker,
         ));
 
+        let ctx = Context::default();
         let full_memory = MemorySerialize {
-            memory: &memory,
+            memory: &memory.to_serialize(&ctx),
             tasks: &tasks,
         };
         let json_memory = serde_json::to_string(&full_memory).unwrap();

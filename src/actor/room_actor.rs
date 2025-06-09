@@ -6,7 +6,7 @@ use screeps::Room;
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
-#[derive(Serialize, Deserialize, Clone, Default)]
+#[derive(Deserialize, Clone, Default)]
 pub struct RoomMemory {
     spawn_task: Option<TaskId>,
 }
@@ -36,5 +36,26 @@ impl Actor for Room {
 
     fn run(&self, _: &Context) -> Result<()> {
         Ok(())
+    }
+}
+
+#[derive(Serialize)]
+pub struct RoomMemorySerialize {
+    spawn_task: Option<TaskId>,
+    spawn_task_display: String,
+}
+
+impl RoomMemory {
+    pub fn to_serialize<'a>(&'a self, ctx: &'a Context) -> RoomMemorySerialize {
+        let display = match self.spawn_task {
+            Some(task_id) => ctx
+                .tasks()
+                .with(task_id, |task: &mut CreepSpawnTask| task.to_string()),
+            None => "<None>".to_string(),
+        };
+        RoomMemorySerialize {
+            spawn_task: self.spawn_task,
+            spawn_task_display: display,
+        }
     }
 }

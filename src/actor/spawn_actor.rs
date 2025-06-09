@@ -8,6 +8,7 @@ use crate::memory::{Task, TaskId};
 use anyhow::{Result, anyhow};
 use screeps::{Part, RoomName, StructureSpawn, find, game};
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 use tracing::info;
 
 pub(crate) fn run(ctx: &Context, spawn: &StructureSpawn) -> Result<()> {
@@ -99,6 +100,12 @@ pub struct CreepSpawnTask {
 impl CreepSpawnTask {
     pub fn new_task(room: RoomName, creep_class: CreepClass) -> Task {
         Task::CreepSpawn(CreepSpawnTask { room, creep_class })
+    }
+}
+
+impl Display for CreepSpawnTask {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Spawn creep {:?} in {}", self.creep_class, self.room)
     }
 }
 

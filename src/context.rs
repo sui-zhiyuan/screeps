@@ -1,6 +1,7 @@
 use crate::memory::{Memory, Tasks};
 use anyhow::Result;
 
+#[derive(Default)]
 pub struct Context {
     memory: Memory,
     tasks: Tasks,
@@ -21,6 +22,6 @@ impl Context {
     }
 
     pub fn store(&self) -> Result<()> {
-        Memory::store_to_raw(&self.memory, &self.tasks)
+        Memory::store_to_raw(self, &self.memory, &self.tasks)
     }
 }

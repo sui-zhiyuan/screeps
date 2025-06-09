@@ -12,7 +12,7 @@ mod spawn_actor;
 
 use crate::context::Context;
 pub use creep_actor::CreepMemory;
-pub use room_actor::RoomMemory;
+pub use room_actor::{RoomMemory, RoomMemorySerialize};
 pub use spawn_actor::{CreepClass, CreepSpawnTask};
 
 pub fn run(ctx: &Context) {
