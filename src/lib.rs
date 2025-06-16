@@ -19,6 +19,7 @@ pub fn game_loop() {
 }
 
 fn game_loop_inner() -> Result<()> {
+    console_error_panic_hook::set_once();
     tracing::init();
 
     info!("loop starting! CPU: {}", game::cpu::get_used());

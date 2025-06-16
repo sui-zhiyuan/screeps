@@ -9,6 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 anyhow = "1.0.98"
+console_error_panic_hook = "0.1.7"
 enum_dispatch = "0.3.13"
 gloo-utils = { version = "0.2.0", features = ["serde"] }
 js-sys = "0.3.77"
