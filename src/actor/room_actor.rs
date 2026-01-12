@@ -1,61 +1,54 @@
-use crate::actor::{Actor, CreepClass, CreepSpawnTask};
-use crate::context::Context;
-use crate::memory::{MemoryAccessor, TaskId};
+use crate::actor::spawn_actor::SpawnActor;
+use crate::actor::{Actor, SpawnMemory};
+use crate::memory::Memory;
+use crate::task::Tasks;
 use anyhow::Result;
-use screeps::Room;
+use screeps::game;
 use serde::{Deserialize, Serialize};
-use tracing::info;
+use std::collections::HashMap;
 
-#[derive(Deserialize, Clone, Default)]
-pub struct RoomMemory {
-    spawn_task: Option<TaskId>,
+#[derive(Deserialize, Serialize, Clone, Default)]
+pub struct RoomMemory {}
+
+pub struct RoomActor {
+    prototype: screeps::Room,
+    memory: RoomMemory,
 }
 
-impl Actor for Room {
+impl RoomActor {
+    pub fn build_actors(memories: &HashMap<String, RoomMemory>) -> Result<Vec<RoomActor>> {
+        let rooms = game::rooms().values();
+        let mut actors = Vec::new();
+
+        for room in rooms {
+            let memory = memories
+                .get(&room.name().to_string())
+                .cloned()
+                .unwrap_or_default();
+            actors.push(RoomActor {
+                prototype: room.clone(),
+                memory,
+            });
+        }
+
+        Ok(actors)
+    }
+}
+
+impl Actor for RoomActor {
     fn name(&self) -> String {
-        self.name().to_string()
+        self.prototype.name().to_string()
     }
 
-    fn plan(&self, ctx: &Context) -> Result<()> {
-        info!("room planning");
-        let mut memory = ctx.memory().load(self);
-        if memory.spawn_task.is_some() {
-            return Ok(());
-        }
-        let task_id = ctx
-            .tasks()
-            .add(CreepSpawnTask::new_task(self.name(), CreepClass::Worker));
-        memory.spawn_task.replace(task_id);
-        ctx.memory().store(self, memory);
+    fn assign(&mut self, tasks: &mut Tasks) -> Result<()> {
         Ok(())
     }
 
-    fn assign(&self, _: &Context) -> Result<()> {
+    fn run(&mut self, tasks: &Tasks) -> Result<()> {
         Ok(())
     }
 
-    fn run(&self, _: &Context) -> Result<()> {
+    fn store_memory(&self, memory: &mut Memory) -> Result<()> {
         Ok(())
-    }
-}
-
-#[derive(Serialize)]
-pub struct RoomMemorySerialize {
-    spawn_task: Option<TaskId>,
-    spawn_task_display: String,
-}
-
-impl RoomMemory {
-    pub fn to_serialize<'a>(&'a self, ctx: &'a Context) -> RoomMemorySerialize {
-        let display = match self.spawn_task {
-            Some(task_id) => ctx
-                .tasks()
-                .with(task_id, |task: &mut CreepSpawnTask| task.to_string()),
-            None => "<None>".to_string(),
-        };
-        RoomMemorySerialize {
-            spawn_task: self.spawn_task,
-            spawn_task_display: display,
-        }
     }
 }
