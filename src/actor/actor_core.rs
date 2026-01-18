@@ -13,15 +13,13 @@ pub struct Actors {
 impl Actors {
     pub fn build_actors(memory: &Memory) -> Result<Actors> {
         let mut actors = Actors { actors: Vec::new() };
-        let spawns = SpawnActor::build_actors(&memory.spawns)?;
-        actors
-            .actors
-            .extend(spawns.into_iter().map(Actor::Spawn));
 
         let rooms = RoomActor::build_actors(&memory.rooms)?;
-        actors
-            .actors
-            .extend(rooms.into_iter().map(Actor::Room));
+        actors.actors.extend(rooms.into_iter().map(Actor::Room));
+
+        let spawns = SpawnActor::build_actors(&memory.spawns)?;
+        actors.actors.extend(spawns.into_iter().map(Actor::Spawn));
+        
         Ok(actors)
     }
 

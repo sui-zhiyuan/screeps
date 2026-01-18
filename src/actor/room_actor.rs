@@ -6,8 +6,14 @@ use screeps::game;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+#[derive(Deserialize, Serialize, Clone, Copy, Default)]
+pub struct RoomId(usize);
+
 #[derive(Deserialize, Serialize, Clone, Default)]
-pub struct RoomMemory {}
+pub struct RoomMemory {
+    id: RoomId,
+    name: String,
+}
 
 pub struct RoomActor {
     prototype: screeps::Room,
