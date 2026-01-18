@@ -8,5 +8,5 @@ mod spawn_actor;
 
 pub(crate) use actor_core::{ActorTrait, Actors};
 pub(crate) use creep_actor::CreepMemory;
-pub(crate) use room_actor::{RoomActor, RoomMemory};
+pub(crate) use room_actor::{RoomActor, RoomActors, RoomId, RoomMemory};
 pub(crate) use spawn_actor::{CreepClass, CreepSpawnTask, SpawnMemory};

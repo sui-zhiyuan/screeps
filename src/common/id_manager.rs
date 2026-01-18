@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 const FREE_COOLDOWN_TIME: u32 = 300; // ticks
 
+// TODO how to make alloc_id and free_id not accessible out of implementation struct?
 pub trait IdManager {
     fn get_pointer(&mut self) -> &mut Option<(usize, usize)>;
     fn get_tombstone(&mut self, index: usize) -> &mut Tombstone;

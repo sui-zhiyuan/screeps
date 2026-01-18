@@ -1,5 +1,5 @@
-use crate::actor::RoomActor;
 use crate::actor::spawn_actor::SpawnActor;
+use crate::actor::{RoomActor, RoomActors};
 use crate::common::{EnumDispatcher, EnumDowncast, enum_downcast};
 use crate::memory::Memory;
 use crate::task::Tasks;
@@ -7,20 +7,23 @@ use anyhow::Result;
 use enum_dispatch::enum_dispatch;
 
 pub struct Actors {
+    pub room_actors: RoomActors,
     actors: Vec<Actor>,
 }
 
 impl Actors {
     pub fn build_actors(memory: &Memory) -> Result<Actors> {
-        let mut actors = Actors { actors: Vec::new() };
+        let mut actors = Vec::<Actor>::new();
 
-        let rooms = RoomActor::build_actors(&memory.rooms)?;
-        actors.actors.extend(rooms.into_iter().map(Actor::Room));
+        let room_actors = RoomActors::build_actors(&memory.rooms)?;
 
         let spawns = SpawnActor::build_actors(&memory.spawns)?;
-        actors.actors.extend(spawns.into_iter().map(Actor::Spawn));
-        
-        Ok(actors)
+        actors.extend(spawns.into_iter().map(Actor::Spawn));
+
+        Ok(Actors {
+            room_actors,
+            actors,
+        })
     }
 
     pub fn run(&mut self, tasks: &mut Tasks) -> Result<()> {
@@ -36,6 +39,8 @@ impl Actors {
     }
 
     pub fn store_memory(&self, memory: &mut Memory) -> Result<()> {
+        self.room_actors.store_memory(&mut memory.rooms)?;
+
         for a in self.actors.iter() {
             a.store_memory(memory)?;
         }
@@ -49,7 +54,6 @@ impl Actors {
 
 #[enum_dispatch]
 pub trait ActorTrait: Sized {
-    fn name(&self) -> String;
     fn assign(&mut self, tasks: &mut Tasks) -> Result<()>;
     fn run(&mut self, tasks: &Tasks) -> Result<()>;
     fn store_memory(&self, memory: &mut Memory) -> Result<()>;

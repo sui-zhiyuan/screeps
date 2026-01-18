@@ -6,7 +6,7 @@ use std::collections::HashMap;
 // use crate::actor::creep_upgrader::CreepUpgraderMemory;
 // use crate::context::Context;
 // use anyhow::{Result, anyhow};
-use crate::actor::ActorTrait;
+use crate::actor::{ActorTrait, RoomId};
 use crate::memory::Memory;
 use crate::task::{Task, TaskId, Tasks};
 use anyhow::{Result, anyhow, ensure};
@@ -71,13 +71,13 @@ use tracing::info;
 //
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct CreepSpawnTask {
-    room: String,
+    room: RoomId,
     creep_class: CreepClass,
     spawn: Option<String>,
 }
 
 impl CreepSpawnTask {
-    pub fn new_task(room: String, creep_class: CreepClass) -> Task {
+    pub fn new_task(room: RoomId, creep_class: CreepClass) -> Task {
         Task::CreepSpawn(CreepSpawnTask {
             room,
             creep_class,
@@ -127,10 +127,6 @@ impl SpawnActor {
 }
 
 impl ActorTrait for SpawnActor {
-    fn name(&self) -> String {
-        self.prototype.name().to_string()
-    }
-
     fn assign(&mut self, tasks: &mut Tasks) -> Result<()> {
         // TODO lazy get curr_room;
         let curr_room = self
@@ -139,7 +135,7 @@ impl ActorTrait for SpawnActor {
             .ok_or(anyhow!("no room found for creep"))?;
         let Some((task_id, task)) = tasks
             .iter_mut::<CreepSpawnTask>()
-            .find(|(_, t)| t.room == curr_room.name())
+            .find(|(_, t)| t.room == curr_room.name().into())
         else {
             return Ok(());
         };

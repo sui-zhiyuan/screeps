@@ -1,4 +1,4 @@
-use crate::actor::{ActorTrait, Actors, CreepSpawnTask, RoomActor};
+use crate::actor::{Actors, CreepSpawnTask};
 use crate::task::Tasks;
 use anyhow::anyhow;
 use tracing::info;
@@ -9,12 +9,13 @@ pub fn plan(actors: &mut Actors, tasks: &mut Tasks) -> anyhow::Result<()> {
     let has_spawn = tasks.iter::<CreepSpawnTask>().next().is_some();
 
     if !has_spawn {
-        let default_room = actors
-            .iter::<RoomActor>()
+        let (&default_room_id, _) = actors
+            .room_actors
+            .iter()
             .next()
             .ok_or(anyhow!("no room found"))?;
         let spawn_task =
-            CreepSpawnTask::new_task(default_room.name(), crate::actor::CreepClass::Worker);
+            CreepSpawnTask::new_task(default_room_id, crate::actor::CreepClass::Worker);
         _ = tasks.add_task(spawn_task)?;
     }
 
