@@ -1,11 +1,11 @@
-use std::cell::RefCell;
-use screeps::game;
-use tracing::{error, info};
-use wasm_bindgen::prelude::wasm_bindgen;
 use crate::actor::Actors;
 use crate::memory::Memory;
 use crate::planner;
 use crate::task::Tasks;
+use screeps::game;
+use std::cell::RefCell;
+use tracing::{error, info};
+use wasm_bindgen::prelude::wasm_bindgen;
 
 thread_local! {
     static CONTEXT: RefCell<Option<Context>> = const { RefCell::new(None) };
@@ -67,7 +67,7 @@ fn bootstrap() -> anyhow::Result<Context> {
 
     let mut memory = Memory::load_from_raw()?;
     let tasks = Tasks::from_memory(&memory);
-    let actors = Actors::build_actors(&mut memory)?;
+    let actors = Actors::build_actors(&memory)?;
     Ok(Context {
         actors,
         memory,

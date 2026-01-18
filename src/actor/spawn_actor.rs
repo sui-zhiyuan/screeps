@@ -6,12 +6,11 @@ use std::collections::HashMap;
 // use crate::actor::creep_upgrader::CreepUpgraderMemory;
 // use crate::context::Context;
 // use anyhow::{Result, anyhow};
-use crate::actor::{Actor, RoomMemory};
-use crate::common::EnumDowncast;
+use crate::actor::ActorTrait;
 use crate::memory::Memory;
 use crate::task::{Task, TaskId, Tasks};
 use anyhow::{Result, anyhow, ensure};
-use screeps::{Part, Room, RoomName, StructureSpawn, find, game};
+use screeps::{Part, game};
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
@@ -127,7 +126,7 @@ impl SpawnActor {
     }
 }
 
-impl Actor for SpawnActor {
+impl ActorTrait for SpawnActor {
     fn name(&self) -> String {
         self.prototype.name().to_string()
     }
@@ -145,7 +144,7 @@ impl Actor for SpawnActor {
             return Ok(());
         };
 
-        let body = vec![Part::Carry, Part::Work, Part::Move, Part::Move];
+        let body = [Part::Carry, Part::Work, Part::Move, Part::Move];
         let cost = body.iter().map(|p| p.cost()).sum();
         task.spawn = Some(self.prototype.name().to_string());
         self.memory.spawn_task = Some(task_id);

@@ -2,76 +2,67 @@ use crate::actor::RoomActor;
 use crate::actor::spawn_actor::SpawnActor;
 use crate::common::{EnumDispatcher, EnumDowncast, enum_downcast};
 use crate::memory::Memory;
-use crate::task::{Task, Tasks};
+use crate::task::Tasks;
+use anyhow::Result;
 use enum_dispatch::enum_dispatch;
-use screeps::Creep;
-use tracing::error;
 
 pub struct Actors {
-    actors: Vec<ActorDispatch>,
+    actors: Vec<Actor>,
 }
 
 impl Actors {
-    pub fn build_actors(memory: &Memory) -> anyhow::Result<Actors> {
+    pub fn build_actors(memory: &Memory) -> Result<Actors> {
         let mut actors = Actors { actors: Vec::new() };
         let spawns = SpawnActor::build_actors(&memory.spawns)?;
         actors
             .actors
-            .extend(spawns.into_iter().map(ActorDispatch::Spawn));
+            .extend(spawns.into_iter().map(Actor::Spawn));
 
         let rooms = RoomActor::build_actors(&memory.rooms)?;
         actors
             .actors
-            .extend(rooms.into_iter().map(ActorDispatch::Room));
+            .extend(rooms.into_iter().map(Actor::Room));
         Ok(actors)
     }
 
-    pub fn run(&mut self, tasks: &mut Tasks) -> anyhow::Result<()> {
+    pub fn run(&mut self, tasks: &mut Tasks) -> Result<()> {
         for a in self.actors.iter_mut() {
-            if let Err(e) = a.assign(tasks) {
-                error!("plan error on {} : {}", a.name(), e);
-            };
+            a.assign(tasks)?
         }
 
         for a in self.actors.iter_mut() {
-            if let Err(e) = a.run(tasks) {
-                error!("run error on {} : {}", a.name(), e);
-            };
+            a.run(tasks)?
         }
 
         Ok(())
     }
 
-    pub fn store_memory(&self, memory: &mut Memory) -> anyhow::Result<()> {
+    pub fn store_memory(&self, memory: &mut Memory) -> Result<()> {
         for a in self.actors.iter() {
             a.store_memory(memory)?;
         }
         Ok(())
     }
 
-    pub fn iter<'a, T: EnumDowncast<ActorDispatch> + 'a>(&'a self) -> impl Iterator<Item = &'a T> {
+    pub fn iter<'a, T: EnumDowncast<Actor> + 'a>(&'a self) -> impl Iterator<Item = &'a T> {
         self.actors.iter().filter_map(|actor| actor.downcast_ref())
     }
 }
 
-trait CreepMemoryTrait {
-    fn run(&mut self, creep: &Creep) -> anyhow::Result<()>;
-}
-
 #[enum_dispatch]
-pub trait Actor: Sized {
+pub trait ActorTrait: Sized {
     fn name(&self) -> String;
-    fn assign(&mut self, tasks: &mut Tasks) -> anyhow::Result<()>;
-    fn run(&mut self, tasks: &Tasks) -> anyhow::Result<()>;
-    fn store_memory(&self, memory: &mut Memory) -> anyhow::Result<()>;
+    fn assign(&mut self, tasks: &mut Tasks) -> Result<()>;
+    fn run(&mut self, tasks: &Tasks) -> Result<()>;
+    fn store_memory(&self, memory: &mut Memory) -> Result<()>;
 }
 
-#[enum_dispatch(Actor)]
-pub enum ActorDispatch {
+#[enum_dispatch(ActorTrait)]
+pub enum Actor {
     Room(RoomActor),
     Spawn(SpawnActor),
 }
 
-impl EnumDispatcher for ActorDispatch {}
-enum_downcast!(ActorDispatch, Room, RoomActor);
-enum_downcast!(ActorDispatch, Spawn, SpawnActor);
+impl EnumDispatcher for Actor {}
+enum_downcast!(Actor, Room, RoomActor);
+enum_downcast!(Actor, Spawn, SpawnActor);

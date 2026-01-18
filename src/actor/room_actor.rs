@@ -1,5 +1,4 @@
-use crate::actor::spawn_actor::SpawnActor;
-use crate::actor::{Actor, SpawnMemory};
+use crate::actor::ActorTrait;
 use crate::memory::Memory;
 use crate::task::Tasks;
 use anyhow::Result;
@@ -35,20 +34,20 @@ impl RoomActor {
     }
 }
 
-impl Actor for RoomActor {
+impl ActorTrait for RoomActor {
     fn name(&self) -> String {
         self.prototype.name().to_string()
     }
 
-    fn assign(&mut self, tasks: &mut Tasks) -> Result<()> {
+    fn assign(&mut self, _tasks: &mut Tasks) -> Result<()> {
         Ok(())
     }
 
-    fn run(&mut self, tasks: &Tasks) -> Result<()> {
+    fn run(&mut self, _tasks: &Tasks) -> Result<()> {
         Ok(())
     }
 
-    fn store_memory(&self, memory: &mut Memory) -> Result<()> {
+    fn store_memory(&self, _memory: &mut Memory) -> Result<()> {
         Ok(())
     }
 }

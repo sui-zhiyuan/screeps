@@ -1,3 +1,3 @@
 mod planner_core;
 
-pub use planner_core::plan;
+pub(crate) use planner_core::plan;

@@ -1,4 +1,4 @@
-use crate::actor::{Actor, Actors, CreepSpawnTask, RoomActor};
+use crate::actor::{ActorTrait, Actors, CreepSpawnTask, RoomActor};
 use crate::task::Tasks;
 use anyhow::anyhow;
 use tracing::info;
