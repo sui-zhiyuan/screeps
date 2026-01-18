@@ -1,11 +1,11 @@
+use crate::actor::RoomActor;
+use crate::actor::spawn_actor::SpawnActor;
+use crate::common::{EnumDispatcher, EnumDowncast, enum_downcast};
+use crate::memory::Memory;
+use crate::task::{Task, Tasks};
 use enum_dispatch::enum_dispatch;
 use screeps::Creep;
 use tracing::error;
-use crate::actor::RoomActor;
-use crate::actor::spawn_actor::SpawnActor;
-use crate::common::EnumDowncast;
-use crate::memory::Memory;
-use crate::task::Tasks;
 
 pub struct Actors {
     actors: Vec<ActorDispatch>,
@@ -50,9 +50,7 @@ impl Actors {
     }
 
     pub fn iter<'a, T: EnumDowncast<ActorDispatch> + 'a>(&'a self) -> impl Iterator<Item = &'a T> {
-        self.actors
-            .iter()
-            .filter_map(|actor| actor.downcast_ref().map(|t| t))
+        self.actors.iter().filter_map(|actor| actor.downcast_ref())
     }
 }
 
@@ -69,61 +67,11 @@ pub trait Actor: Sized {
 }
 
 #[enum_dispatch(Actor)]
-enum ActorDispatch {
+pub enum ActorDispatch {
     Room(RoomActor),
     Spawn(SpawnActor),
 }
 
-impl EnumDowncast<ActorDispatch> for RoomActor {
-    fn enum_downcast(from: ActorDispatch) -> Option<Self> {
-        match from {
-            ActorDispatch::Room(item) => Some(item),
-            _ => None,
-        }
-    }
-    fn enum_downcast_ref(from: &ActorDispatch) -> Option<&Self> {
-        match from {
-            ActorDispatch::Room(item) => Some(item),
-            _ => None,
-        }
-    }
-    fn enum_downcast_mut(from: &mut ActorDispatch) -> Option<&mut Self> {
-        match from {
-            ActorDispatch::Room(item) => Some(item),
-            _ => None,
-        }
-    }
-}
-
-impl EnumDowncast<ActorDispatch> for SpawnActor {
-    fn enum_downcast(from: ActorDispatch) -> Option<Self> {
-        match from {
-            ActorDispatch::Spawn(item) => Some(item),
-            _ => None,
-        }
-    }
-    fn enum_downcast_ref(from: &ActorDispatch) -> Option<&Self> {
-        match from {
-            ActorDispatch::Spawn(item) => Some(item),
-            _ => None,
-        }
-    }
-    fn enum_downcast_mut(from: &mut ActorDispatch) -> Option<&mut Self> {
-        match from {
-            ActorDispatch::Spawn(item) => Some(item),
-            _ => None,
-        }
-    }
-}
-
-impl ActorDispatch {
-    fn downcast<T: EnumDowncast<Self>>(self) -> Option<T> {
-        T::enum_downcast(self)
-    }
-    fn downcast_ref<T: EnumDowncast<Self>>(&self) -> Option<&T> {
-        T::enum_downcast_ref(self)
-    }
-    fn downcast_mut<T: EnumDowncast<Self>>(&mut self) -> Option<&mut T> {
-        T::enum_downcast_mut(self)
-    }
-}
+impl EnumDispatcher for ActorDispatch {}
+enum_downcast!(ActorDispatch, Room, RoomActor);
+enum_downcast!(ActorDispatch, Spawn, SpawnActor);

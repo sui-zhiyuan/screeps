@@ -1,5 +1,5 @@
 use crate::actor::CreepSpawnTask;
-use crate::common::EnumDowncast;
+use crate::common::{EnumDispatcher, EnumDowncast, enum_downcast};
 use crate::memory::Memory;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -63,39 +63,6 @@ impl Tasks {
 #[derive(Serialize, Deserialize, Copy, Clone)]
 pub struct TaskId(usize);
 
-impl Task {
-    fn downcast<T: EnumDowncast<Self>>(self) -> Option<T> {
-        T::enum_downcast(self)
-    }
-    fn downcast_ref<T: EnumDowncast<Self>>(&self) -> Option<&T> {
-        T::enum_downcast_ref(self)
-    }
-    fn downcast_mut<T: EnumDowncast<Self>>(&mut self) -> Option<&mut T> {
-        T::enum_downcast_mut(self)
-    }
-}
-
-impl EnumDowncast<Task> for NoTask {
-    fn enum_downcast(from: Task) -> Option<Self> {
-        match from {
-            Task::NoTask(item) => Some(item),
-            _ => None,
-        }
-    }
-    fn enum_downcast_ref(from: &Task) -> Option<&Self> {
-        match from {
-            Task::NoTask(item) => Some(item),
-            _ => None,
-        }
-    }
-    fn enum_downcast_mut(from: &mut Task) -> Option<&mut Self> {
-        match from {
-            Task::NoTask(item) => Some(item),
-            _ => None,
-        }
-    }
-}
-
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 #[serde(tag = "t")]
 pub enum Task {
@@ -111,3 +78,7 @@ impl Display for NoTask {
         write!(f, "NoTask")
     }
 }
+
+impl EnumDispatcher for Task {}
+enum_downcast!(Task, NoTask, NoTask);
+enum_downcast!(Task, CreepSpawn, CreepSpawnTask);

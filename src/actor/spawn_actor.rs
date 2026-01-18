@@ -77,27 +77,6 @@ pub struct CreepSpawnTask {
     spawn: Option<String>,
 }
 
-impl EnumDowncast<Task> for CreepSpawnTask {
-    fn enum_downcast(from: Task) -> Option<Self> {
-        match from {
-            Task::CreepSpawn(item) => Some(item),
-            _ => None,
-        }
-    }
-    fn enum_downcast_ref(from: &Task) -> Option<&Self> {
-        match from {
-            Task::CreepSpawn(item) => Some(item),
-            _ => None,
-        }
-    }
-    fn enum_downcast_mut(from: &mut Task) -> Option<&mut Self> {
-        match from {
-            Task::CreepSpawn(item) => Some(item),
-            _ => None,
-        }
-    }
-}
-
 impl CreepSpawnTask {
     pub fn new_task(room: String, creep_class: CreepClass) -> Task {
         Task::CreepSpawn(CreepSpawnTask {

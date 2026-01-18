@@ -1,3 +1,4 @@
-mod common_uncategorized;
+mod enum_downcast;
 
-pub use common_uncategorized::EnumDowncast;
+pub use enum_downcast::{EnumDispatcher, EnumDowncast};
+pub(crate) use enum_downcast::enum_downcast; 
