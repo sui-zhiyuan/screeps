@@ -46,7 +46,7 @@ fn game_loop_inner(ctx: &mut Option<Context>) -> anyhow::Result<()> {
     actors.run(&mut tasks)?;
 
     actors.store_memory(&mut memory)?;
-    tasks.store_memory(&mut memory);
+    tasks.store_memory(&mut memory.tasks);
     memory.store_to_raw()?;
 
     // if anything goes wrong, not setting ctx back trigger a restart in next loop;
@@ -65,8 +65,8 @@ fn bootstrap() -> anyhow::Result<Context> {
     crate::tracing::init();
     info!("bootstrapping! CPU: {}", game::cpu::get_used());
 
-    let mut memory = Memory::load_from_raw()?;
-    let tasks = Tasks::from_memory(&memory);
+    let memory = Memory::load_from_raw()?;
+    let tasks = Tasks::from_memory(&memory.tasks);
     let actors = Actors::build_actors(&memory)?;
     Ok(Context {
         actors,

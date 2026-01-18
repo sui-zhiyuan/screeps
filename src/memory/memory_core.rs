@@ -1,5 +1,5 @@
 use crate::actor::{CreepMemory, RoomMemory, SpawnMemory};
-use crate::task::Task;
+use crate::task::TaskMemory;
 use js_sys::JsString;
 use screeps::raw_memory;
 use serde::{Deserialize, Serialize};
@@ -16,7 +16,7 @@ pub struct Memory {
     #[serde(default)]
     pub flags: HashMap<String, ()>,
     #[serde(default)]
-    pub tasks: Vec<Task>,
+    pub tasks: TaskMemory,
 }
 
 impl Memory {
