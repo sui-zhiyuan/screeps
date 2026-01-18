@@ -7,13 +7,13 @@ use std::collections::HashMap;
 // use crate::context::Context;
 // use anyhow::{Result, anyhow};
 use crate::actor::{Actor, RoomMemory};
+use crate::common::EnumDowncast;
 use crate::memory::Memory;
-use crate::task::{NoTask, Task, TaskId, Tasks};
+use crate::task::{Task, TaskId, Tasks};
 use anyhow::{Result, anyhow, ensure};
 use screeps::{Part, Room, RoomName, StructureSpawn, find, game};
 use serde::{Deserialize, Serialize};
 use tracing::info;
-use crate::common::EnumDowncast;
 
 // use std::fmt::Display;
 // use tracing::info;
