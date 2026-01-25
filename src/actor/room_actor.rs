@@ -1,6 +1,4 @@
-use crate::actor::ActorTrait;
 use crate::common::{hash_map, hash_map_key};
-use crate::task::Tasks;
 use anyhow::Result;
 use screeps::{RoomName, game};
 use serde::{Deserialize, Serialize};
@@ -60,13 +58,17 @@ impl RoomActors {
     }
 
     pub fn store_memory(&self, memories: &mut RoomMemories) -> Result<()> {
-        let values = hash_map(
-            &self.actors,
-            |id| String::from(id),
-            |actor| actor.memory.clone(),
-        );
+        let values = hash_map(&self.actors, String::from, |actor| actor.memory.clone());
         *memories = RoomMemories { values };
         Ok(())
+    }
+
+    pub fn get(&self, room_id: &RoomId) -> Option<&RoomActor> {
+        self.actors.get(room_id)
+    }
+
+    pub fn get_mut(&mut self, room_id: &RoomId) -> Option<&mut RoomActor> {
+        self.actors.get_mut(room_id)
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&RoomId, &RoomActor)> {
@@ -78,7 +80,12 @@ impl RoomActors {
     }
 }
 
-impl RoomActor {}
+impl RoomActor {
+    pub fn energy_available(&self) -> u32 {
+        // TODO: deduct energy planned
+        self.prototype.energy_available()
+    }
+}
 
 impl From<RoomName> for RoomId {
     fn from(room_name: RoomName) -> Self {
@@ -103,15 +110,5 @@ impl From<RoomId> for String {
     fn from(room_id: RoomId) -> Self {
         let room_name: RoomName = room_id.into();
         room_name.to_string()
-    }
-}
-
-impl ActorTrait for RoomActor {
-    fn assign(&mut self, _tasks: &mut Tasks) -> Result<()> {
-        Ok(())
-    }
-
-    fn run(&mut self, _tasks: &Tasks) -> Result<()> {
-        Ok(())
     }
 }

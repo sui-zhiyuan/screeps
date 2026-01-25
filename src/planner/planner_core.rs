@@ -14,9 +14,9 @@ pub fn plan(actors: &mut Actors, tasks: &mut Tasks) -> anyhow::Result<()> {
             .iter()
             .next()
             .ok_or(anyhow!("no room found"))?;
-        let spawn_task =
-            CreepSpawnTask::new_task(default_room_id, crate::actor::CreepClass::Worker);
-        _ = tasks.add_task(spawn_task)?;
+        _ = tasks.add_task(|id| {
+            CreepSpawnTask::new_task(id, default_room_id, crate::actor::CreepClass::Worker)
+        })?;
     }
 
     // TODO

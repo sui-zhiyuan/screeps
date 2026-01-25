@@ -33,20 +33,16 @@ impl Tasks {
     }
 
     pub fn store_memory(&self, memory: &mut TaskMemory) {
-        let values = hash_map(
-            &self.values,
-            |task_id| String::from(task_id),
-            |task| task.clone(),
-        );
+        let values = hash_map(&self.values, String::from, |task| task.clone());
         *memory = TaskMemory {
             id_manager: self.id_manager.clone(),
             values,
         }
     }
 
-    pub fn add_task(&mut self, task: Task) -> Result<TaskId> {
+    pub fn add_task(&mut self, f: impl FnOnce(TaskId) -> Task) -> Result<TaskId> {
         let id = self.id_manager.alloc_id();
-        self.values.insert(id, task);
+        self.values.insert(id, f(id));
         Ok(id)
     }
 
@@ -60,16 +56,14 @@ impl Tasks {
 
     pub fn iter_mut<'a, T: EnumDowncast<Task> + 'a>(
         &'a mut self,
-    ) -> impl Iterator<Item = (TaskId, &'a mut T)> {
+    ) -> impl Iterator<Item = &'a mut T> {
         self.values
-            .iter_mut()
-            .filter_map(|(&id, task)| task.downcast_mut().map(|t| (id, t)))
+            .values_mut()
+            .filter_map(|task| task.downcast_mut())
     }
 
-    pub fn iter<'a, T: EnumDowncast<Task> + 'a>(&'a self) -> impl Iterator<Item = (TaskId, &'a T)> {
-        self.values
-            .iter()
-            .filter_map(|(&id, task)| task.downcast_ref().map(|t| (id, t)))
+    pub fn iter<'a, T: EnumDowncast<Task> + 'a>(&'a self) -> impl Iterator<Item = &'a T> {
+        self.values.values().filter_map(|task| task.downcast_ref())
     }
 
     pub fn get<T: EnumDowncast<Task>>(&self, id: TaskId) -> Result<&T> {
@@ -122,7 +116,7 @@ impl From<TaskId> for usize {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone)]
 #[serde(tag = "t")]
 pub enum Task {
     CreepSpawn(CreepSpawnTask),

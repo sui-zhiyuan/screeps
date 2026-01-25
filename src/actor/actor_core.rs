@@ -1,9 +1,7 @@
-use crate::actor::{RoomActor, RoomActors, SpawnActor, SpawnActors};
-use crate::common::{EnumDispatcher, enum_downcast};
+use crate::actor::{RoomActors, SpawnActors};
 use crate::memory::Memory;
 use crate::task::Tasks;
 use anyhow::Result;
-use enum_dispatch::enum_dispatch;
 
 pub struct Actors {
     pub room_actors: RoomActors,
@@ -22,31 +20,8 @@ impl Actors {
     }
 
     pub fn run(&mut self, tasks: &mut Tasks) -> Result<()> {
-        for (_, room) in self.room_actors.iter_mut() {
-            room.assign(tasks)?;
-        }
-
-        for (_, spawn) in self.spawn_actors.iter_mut() {
-            spawn.assign(tasks)?;
-        }
-
-        for (_, room) in self.room_actors.iter_mut() {
-            room.run(tasks)?;
-        }
-
-        for (_, spawn) in self.spawn_actors.iter_mut() {
-            spawn.run(tasks)?;
-        }
-
-        // TODO
-        // for a in self.actors.iter_mut() {
-        //     a.assign(tasks)?
-        // }
-        //
-        // for a in self.actors.iter_mut() {
-        //     a.run(tasks)?
-        // }
-
+        SpawnActors::assign(self, tasks)?;
+        SpawnActors::run(self, tasks)?;
         Ok(())
     }
 
@@ -56,20 +31,3 @@ impl Actors {
         Ok(())
     }
 }
-
-#[enum_dispatch]
-pub trait ActorTrait: Sized {
-    fn assign(&mut self, tasks: &mut Tasks) -> Result<()>;
-    fn run(&mut self, tasks: &Tasks) -> Result<()>;
-}
-
-// #[enum_dispatch(ActorTrait)]
-// pub enum Actor {
-//     Room(RoomActor),
-//     Spawn(SpawnActor),
-// }
-
-//
-// impl EnumDispatcher for Actor {}
-// enum_downcast!(Actor, Room, RoomActor);
-// enum_downcast!(Actor, Spawn, SpawnActor);

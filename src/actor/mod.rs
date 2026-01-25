@@ -6,7 +6,7 @@ mod creep_upgrader;
 mod room_actor;
 mod spawn_actor;
 
-pub(crate) use actor_core::{ActorTrait, Actors};
+pub(crate) use actor_core::Actors;
 pub(crate) use creep_actor::CreepMemory;
-pub(crate) use room_actor::{RoomActor, RoomActors, RoomId, RoomMemories, RoomMemory};
-pub(crate) use spawn_actor::{CreepClass, CreepSpawnTask, SpawnActor, SpawnActors, SpawnMemories};
+pub(crate) use room_actor::{RoomActor, RoomActors, RoomId, RoomMemories};
+pub(crate) use spawn_actor::{CreepClass, CreepSpawnTask, SpawnActors, SpawnMemories};
