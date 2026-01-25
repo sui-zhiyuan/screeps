@@ -1,15 +1,15 @@
 use crate::actor::ActorTrait;
-use crate::memory::Memory;
+use crate::common::{hash_map, hash_map_key};
 use crate::task::Tasks;
 use anyhow::Result;
-use js_sys::JsString;
 use screeps::{RoomName, game};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Deserialize, Serialize, Clone, Default)]
 pub struct RoomMemories {
-    actors: HashMap<String, RoomMemory>,
+    #[serde(flatten)]
+    values: HashMap<String, RoomMemory>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Default)]
@@ -23,57 +23,58 @@ pub struct RoomActors {
 }
 
 pub struct RoomActor {
-    prototype: Option<screeps::Room>,
+    prototype: screeps::Room,
     memory: RoomMemory,
 }
 
 impl RoomActors {
-    pub fn build_actors(memories: &HashMap<String, RoomMemory>) -> Result<RoomActors> {
-        let mut room_actors = RoomActors {
-            actors: HashMap::new(),
-        };
+    pub fn build_actors(memories: &RoomMemories) -> Result<RoomActors> {
         let mut rooms = game::rooms()
             .entries()
-            .map(|(name, room)| (name.to_string(), room))
+            .map(|(name, room)| (RoomId::from(name), room))
             .collect::<HashMap<_, _>>();
 
-        for (name, memory) in memories {
-            let room_prototype = rooms.remove(name);
-            let room_name_js: JsString = name.clone().into();
-            let room_name: RoomName = room_name_js.try_into().expect("unknown room name");
-            let room_id = room_name.into();
-            room_actors.actors.insert(
-                room_id,
-                RoomActor {
-                    prototype: room_prototype,
+        let mut actors = hash_map_key(
+            &memories.values,
+            |name| RoomId::from(name.as_str()),
+            |id, memory| {
+                let prototype = rooms.remove(&id)?;
+                Some(RoomActor {
+                    prototype,
                     memory: memory.clone(),
-                },
-            );
-        }
+                })
+            },
+        );
 
-        for (_, room) in rooms {
-            room_actors.actors.insert(
-                room.name().into(),
+        for (id, room) in rooms {
+            actors.insert(
+                id,
                 RoomActor {
-                    prototype: Some(room),
+                    prototype: room,
                     memory: RoomMemory::default(),
                 },
             );
         }
 
-        Ok(room_actors)
+        Ok(RoomActors { actors })
     }
 
-    pub fn store_memory(&self, memories: &mut HashMap<String, RoomMemory>) -> Result<()> {
-        for (room_id, actor) in self.actors.iter() {
-            let room_name: RoomName = (*room_id).into();
-            memories.insert(room_name.to_string(), actor.memory.clone());
-        }
+    pub fn store_memory(&self, memories: &mut RoomMemories) -> Result<()> {
+        let values = hash_map(
+            &self.actors,
+            |id| String::from(id),
+            |actor| actor.memory.clone(),
+        );
+        *memories = RoomMemories { values };
         Ok(())
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&RoomId, &RoomActor)> {
         self.actors.iter()
+    }
+
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&RoomId, &mut RoomActor)> {
+        self.actors.iter_mut()
     }
 }
 
@@ -91,16 +92,26 @@ impl From<RoomId> for RoomName {
     }
 }
 
+impl From<&str> for RoomId {
+    fn from(room_name: &str) -> Self {
+        let room_name: RoomName = room_name.parse().unwrap();
+        RoomId::from(room_name)
+    }
+}
+
+impl From<RoomId> for String {
+    fn from(room_id: RoomId) -> Self {
+        let room_name: RoomName = room_id.into();
+        room_name.to_string()
+    }
+}
+
 impl ActorTrait for RoomActor {
     fn assign(&mut self, _tasks: &mut Tasks) -> Result<()> {
         Ok(())
     }
 
     fn run(&mut self, _tasks: &Tasks) -> Result<()> {
-        Ok(())
-    }
-
-    fn store_memory(&self, _memory: &mut Memory) -> Result<()> {
         Ok(())
     }
 }

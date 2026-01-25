@@ -1,4 +1,4 @@
-use crate::actor::{CreepMemory, RoomMemory, SpawnMemory};
+use crate::actor::{CreepMemory, RoomMemories, SpawnMemories};
 use crate::task::TaskMemory;
 use js_sys::JsString;
 use screeps::raw_memory;
@@ -8,9 +8,9 @@ use std::collections::HashMap;
 #[derive(Serialize, Deserialize, Default)]
 pub struct Memory {
     #[serde(default)]
-    pub rooms: HashMap<String, RoomMemory>,
+    pub rooms: RoomMemories,
     #[serde(default)]
-    pub spawns: HashMap<String, SpawnMemory>,
+    pub spawns: SpawnMemories,
     #[serde(default)]
     pub creeps: HashMap<String, CreepMemory>,
     #[serde(default)]

@@ -1,4 +1,7 @@
 use std::collections::HashMap;
+use std::fmt::{Display, Formatter};
+use std::mem;
+use std::str::FromStr;
 // use crate::actor::Actor;
 // use crate::actor::creep_actor::CreepMemory;
 // use crate::actor::creep_builder::CreepBuilderMemory;
@@ -6,14 +9,15 @@ use std::collections::HashMap;
 // use crate::actor::creep_upgrader::CreepUpgraderMemory;
 // use crate::context::Context;
 // use anyhow::{Result, anyhow};
-use crate::actor::{ActorTrait, RoomId};
+use crate::actor::{ActorTrait, RoomActors, RoomId, RoomMemory};
+use crate::common;
+use crate::common::{IdManager, hash_map, hash_map_key};
 use crate::memory::Memory;
 use crate::task::{Task, TaskId, Tasks};
 use anyhow::{Result, anyhow, ensure};
 use screeps::{Part, game};
 use serde::{Deserialize, Serialize};
-use tracing::info;
-
+use tracing::{info, warn};
 // use std::fmt::Display;
 // use tracing::info;
 //
@@ -69,22 +73,7 @@ use tracing::info;
 //
 
 //
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
-pub struct CreepSpawnTask {
-    room: RoomId,
-    creep_class: CreepClass,
-    spawn: Option<String>,
-}
 
-impl CreepSpawnTask {
-    pub fn new_task(room: RoomId, creep_class: CreepClass) -> Task {
-        Task::CreepSpawn(CreepSpawnTask {
-            room,
-            creep_class,
-            spawn: None,
-        })
-    }
-}
 //
 // impl Display for CreepSpawnTask {
 //     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -92,16 +81,13 @@ impl CreepSpawnTask {
 //     }
 // }
 //
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
-pub enum CreepClass {
-    Worker,
-}
 
-pub struct SpawnActor {
-    prototype: screeps::StructureSpawn,
-    memory: SpawnMemory,
-    // TODO as room actor
-    // room: Room,
+#[derive(Serialize, Deserialize, Default, Clone)]
+pub struct SpawnMemories {
+    #[serde(default)]
+    id_manager: IdManager<SpawnId>,
+    #[serde(flatten)]
+    values: HashMap<String, SpawnMemory>,
 }
 
 #[derive(Serialize, Deserialize, Default, Clone)]
@@ -109,22 +95,102 @@ pub struct SpawnMemory {
     spawn_task: Option<TaskId>,
 }
 
-impl SpawnActor {
-    pub fn build_actors(memories: &HashMap<String, SpawnMemory>) -> Result<Vec<SpawnActor>> {
-        let spawns = game::spawns().values();
-        let mut actors = Vec::new();
+#[derive(PartialEq, Eq, Hash, Copy, Clone)]
+pub struct SpawnId(usize);
 
-        for spawn in spawns {
-            let memory = memories.get(&spawn.name()).cloned().unwrap_or_default();
-            actors.push(SpawnActor {
-                prototype: spawn.clone(),
-                memory,
-            });
+pub struct SpawnActors {
+    id_manager: IdManager<SpawnId>,
+    actors: HashMap<SpawnId, SpawnActor>,
+}
+
+pub struct SpawnActor {
+    prototype: screeps::StructureSpawn,
+    memory: SpawnMemory,
+    room_id: RoomId,
+}
+
+impl SpawnActors {
+    pub fn build_actors(memories: &SpawnMemories) -> Result<SpawnActors> {
+        let mut spawns = game::spawns()
+            .entries()
+            .map(|(key, value)| (SpawnId::from(key.as_str()), value))
+            .collect::<HashMap<_, _>>();
+
+        let mut actors = hash_map_key(
+            &memories.values,
+            |name| SpawnId::from(name.as_str()),
+            |id, memory| {
+                let Some(prototype) = spawns.remove(&id) else {
+                    return None;
+                };
+                let room = prototype.room().expect("missing room for spawn");
+                Some(SpawnActor {
+                    prototype,
+                    memory: memory.clone(),
+                    room_id: RoomId::from(room.name()),
+                })
+            },
+        );
+
+        for (id, prototype) in spawns.into_iter() {
+            let room = prototype.room().ok_or(anyhow!("missing room for spawn"))?;
+            let actor = SpawnActor {
+                prototype,
+                memory: SpawnMemory::default(),
+                room_id: RoomId::from(room.name()),
+            };
+            actors.insert(id, actor);
         }
 
-        Ok(actors)
+        Ok(SpawnActors {
+            id_manager: memories.id_manager.clone(),
+            actors,
+        })
     }
+
+    pub fn store_memory(&self, memories: &mut SpawnMemories) -> Result<()> {
+        let values = hash_map(
+            &self.actors,
+            |id| String::from(id),
+            |actor| actor.memory.clone(),
+        );
+        *memories = SpawnMemories {
+            id_manager: self.id_manager.clone(),
+            values,
+        };
+        Ok(())
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&SpawnId, &SpawnActor)> {
+        self.actors.iter()
+    }
+
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&SpawnId, &mut SpawnActor)> {
+        self.actors.iter_mut()
+    }
+
+    // fn add_spawn(&mut self, spawn: SpawnActor) -> Result<SpawnId> {
+    //     match self.alloc_id() {
+    //         NewIdResult::NewId => {
+    //             let id = self.actors.len();
+    //             self.actors.push(spawn);
+    //             Ok(SpawnId(id))
+    //         }
+    //         NewIdResult::ReusedId(id) => {
+    //             self.actors[id] = spawn;
+    //             Ok(SpawnId(id))
+    //         }
+    //     }
+    // }
+
+    // fn remove_spawn(&mut self, id: SpawnId) -> Result<SpawnActor> {
+    //     let mut spawn = SpawnActor::Tombstone(self.free_id(id.0));
+    //     mem::swap(&mut spawn, &mut self.actors[id.0]);
+    //     Ok(spawn)
+    // }
 }
+
+impl SpawnActor {}
 
 impl ActorTrait for SpawnActor {
     fn assign(&mut self, tasks: &mut Tasks) -> Result<()> {
@@ -179,11 +245,40 @@ impl ActorTrait for SpawnActor {
 
         Ok(())
     }
+}
 
-    fn store_memory(&self, memory: &mut Memory) -> Result<()> {
-        memory
-            .spawns
-            .insert(self.prototype.name(), self.memory.clone());
-        Ok(())
+impl From<&str> for SpawnId {
+    fn from(value: &str) -> Self {
+        let s = value.strip_prefix('S').expect("invalid spawn id");
+        let id: usize = s.trim_start_matches('0').parse().unwrap();
+        SpawnId(id)
+    }
+}
+
+impl From<SpawnId> for String {
+    fn from(value: SpawnId) -> Self {
+        format!("S{:03}", value.0)
+    }
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
+pub struct CreepSpawnTask {
+    room: RoomId,
+    creep_class: CreepClass,
+    spawn: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
+pub enum CreepClass {
+    Worker,
+}
+
+impl CreepSpawnTask {
+    pub fn new_task(room: RoomId, creep_class: CreepClass) -> Task {
+        Task::CreepSpawn(CreepSpawnTask {
+            room,
+            creep_class,
+            spawn: None,
+        })
     }
 }

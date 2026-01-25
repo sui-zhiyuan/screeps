@@ -1,69 +1,60 @@
 use crate::actor::CreepSpawnTask;
 use crate::common::{
-    EnumDispatcher, EnumDowncast, IdManager, NewIdResult, Tombstone, enum_downcast,
+    EnumDispatcher, EnumDowncast, IdManager, enum_downcast, hash_map, hash_map_key,
 };
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fmt::format;
-use std::mem;
 
 pub struct Tasks {
-    pointers: Option<(usize, usize)>,
-    values: Vec<Task>,
+    id_manager: IdManager<TaskId>,
+    values: HashMap<TaskId, Task>,
 }
 
 #[derive(Serialize, Deserialize, Default, Clone)]
 pub struct TaskMemory {
-    pointers: Option<(usize, usize)>, // head , tail
+    #[serde(default)]
+    id_manager: IdManager<TaskId>,
     #[serde(flatten)]
     values: HashMap<String, Task>,
 }
 
 impl Tasks {
     pub fn from_memory(memory: &TaskMemory) -> Self {
-        let length = memory.values.len();
-        let mut values = Vec::with_capacity(length);
-        for id in 0..length {
-            let key = format!("T{:04}", id);
-            values.push(memory.values.get(&key).expect("missing middle").clone());
-        }
+        let values = hash_map_key(
+            &memory.values,
+            |task_name| TaskId::from(task_name.as_str()),
+            |_, task| Some(task.clone()),
+        );
         Tasks {
-            pointers: memory.pointers,
+            id_manager: memory.id_manager.clone(),
             values,
         }
     }
 
     pub fn store_memory(&self, memory: &mut TaskMemory) {
-        let values = self
-            .values
-            .iter()
-            .enumerate()
-            .map(|(id, task)| (format!("T{:04}", id), task.clone()))
-            .collect();
+        let values = hash_map(
+            &self.values,
+            |task_id| String::from(task_id),
+            |task| task.clone(),
+        );
         *memory = TaskMemory {
-            pointers: self.pointers,
+            id_manager: self.id_manager.clone(),
             values,
         }
     }
 
     pub fn add_task(&mut self, task: Task) -> Result<TaskId> {
-        match self.alloc_id() {
-            NewIdResult::NewId => {
-                let id = self.values.len();
-                self.values.push(task);
-                Ok(TaskId(id))
-            }
-            NewIdResult::ReusedId(id) => {
-                self.values[id] = task;
-                Ok(TaskId(id))
-            }
-        }
+        let id = self.id_manager.alloc_id();
+        self.values.insert(id, task);
+        Ok(id)
     }
 
-    pub fn remove_task(&mut self, TaskId(task_id): TaskId) -> Result<Task> {
-        let mut task = Task::Tombstone(self.free_id(task_id));
-        mem::swap(&mut task, &mut self.values[task_id]);
+    pub fn remove_task(&mut self, id: TaskId) -> Result<Task> {
+        let task = self
+            .values
+            .remove(&id)
+            .ok_or_else(|| anyhow!("invalid task id"))?;
         Ok(task)
     }
 
@@ -72,31 +63,29 @@ impl Tasks {
     ) -> impl Iterator<Item = (TaskId, &'a mut T)> {
         self.values
             .iter_mut()
-            .enumerate()
-            .filter_map(|(task_id, task)| task.downcast_mut().map(|t| (TaskId(task_id), t)))
+            .filter_map(|(&id, task)| task.downcast_mut().map(|t| (id, t)))
     }
 
     pub fn iter<'a, T: EnumDowncast<Task> + 'a>(&'a self) -> impl Iterator<Item = (TaskId, &'a T)> {
         self.values
             .iter()
-            .enumerate()
-            .filter_map(|(task_id, task)| task.downcast_ref().map(|t| (TaskId(task_id), t)))
+            .filter_map(|(&id, task)| task.downcast_ref().map(|t| (id, t)))
     }
 
-    pub fn get<T: EnumDowncast<Task>>(&self, id: TaskId) -> anyhow::Result<&T> {
+    pub fn get<T: EnumDowncast<Task>>(&self, id: TaskId) -> Result<&T> {
         self.values
-            .get(id.0)
-            .ok_or_else(|| anyhow::anyhow!("task id out of bounds"))
+            .get(&id)
+            .ok_or_else(|| anyhow::anyhow!("invalid task id"))
             .and_then(|task| {
                 task.downcast_ref()
                     .ok_or_else(|| anyhow::anyhow!("task is not of the expected type"))
             })
     }
 
-    pub fn get_mut<T: EnumDowncast<Task>>(&mut self, id: TaskId) -> anyhow::Result<&mut T> {
+    pub fn get_mut<T: EnumDowncast<Task>>(&mut self, id: TaskId) -> Result<&mut T> {
         self.values
-            .get_mut(id.0)
-            .ok_or_else(|| anyhow::anyhow!("task id out of bounds"))
+            .get_mut(&id)
+            .ok_or_else(|| anyhow::anyhow!("invalid task id"))
             .and_then(|task| {
                 task.downcast_mut()
                     .ok_or_else(|| anyhow::anyhow!("task is not of the expected type"))
@@ -104,29 +93,40 @@ impl Tasks {
     }
 }
 
-impl IdManager for Tasks {
-    fn get_pointer(&mut self) -> &mut Option<(usize, usize)> {
-        &mut self.pointers
-    }
+#[derive(Serialize, Deserialize, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct TaskId(usize);
 
-    fn get_tombstone(&mut self, index: usize) -> &mut Tombstone {
-        match &mut self.values[index] {
-            Task::Tombstone(tombstone) => tombstone,
-            _ => panic!("Expected NoTask at index {}", index),
-        }
+impl From<TaskId> for String {
+    fn from(value: TaskId) -> Self {
+        format!("T{:04}", value.0)
     }
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone)]
-pub struct TaskId(usize);
+impl From<&str> for TaskId {
+    fn from(s: &str) -> Self {
+        let s = s.strip_prefix('T').expect("invalid task id");
+        let id: usize = s.trim_start_matches('0').parse().unwrap();
+        TaskId(id)
+    }
+}
+
+impl From<usize> for TaskId {
+    fn from(value: usize) -> Self {
+        TaskId(value)
+    }
+}
+
+impl From<TaskId> for usize {
+    fn from(value: TaskId) -> Self {
+        value.0
+    }
+}
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 #[serde(tag = "t")]
 pub enum Task {
-    Tombstone(Tombstone),
     CreepSpawn(CreepSpawnTask),
 }
 
 impl EnumDispatcher for Task {}
-enum_downcast!(Task, Tombstone, Tombstone);
 enum_downcast!(Task, CreepSpawn, CreepSpawnTask);
