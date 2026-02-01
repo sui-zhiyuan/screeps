@@ -99,7 +99,7 @@ impl From<TaskId> for String {
 impl From<&str> for TaskId {
     fn from(s: &str) -> Self {
         let s = s.strip_prefix('T').expect("invalid task id");
-        let id: usize = s.trim_start_matches('0').parse().unwrap();
+        let id: usize = s.parse().unwrap();
         TaskId(id)
     }
 }

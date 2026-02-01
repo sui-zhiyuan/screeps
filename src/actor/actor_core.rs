@@ -20,7 +20,6 @@ impl Actors {
     }
 
     pub fn run(&mut self, tasks: &mut Tasks) -> Result<()> {
-        SpawnActors::assign(self, tasks)?;
         SpawnActors::run(self, tasks)?;
         Ok(())
     }

@@ -2,10 +2,11 @@ use crate::actor::RoomActor;
 use crate::actor::{Actors, RoomId};
 use crate::common::{IdManager, hash_map, hash_map_key};
 use crate::task::{Task, TaskId, Tasks};
-use anyhow::{Result, anyhow};
-use screeps::{Part, game};
+use anyhow::{Result, anyhow, bail};
+use screeps::{Part, RoomObjectProperties, game};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::thread::spawn;
 use tracing::info;
 //
 //
@@ -145,84 +146,60 @@ impl SpawnActors {
         Ok(())
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&SpawnId, &SpawnActor)> {
-        self.actors.iter()
+    pub fn iter(&self) -> impl Iterator<Item = &SpawnActor> {
+        self.actors.values()
     }
 
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&SpawnId, &mut SpawnActor)> {
-        self.actors.iter_mut()
-    }
-
-    pub fn assign(actors: &mut Actors, tasks: &mut Tasks) -> Result<()> {
-        let spawn_ids = actors
-            .spawn_actors
-            .actors
-            .keys()
-            .copied()
-            .collect::<Vec<_>>();
-        for spawn_id in spawn_ids {
-            let curr_spawn = actors.spawn_actors.actors.get_mut(&spawn_id).unwrap();
-            let curr_room = actors
-                .room_actors
-                .get_mut(&curr_spawn.room_id)
-                .ok_or(anyhow!("room not found"))?;
-            let Some(task) = tasks
-                .iter_mut::<CreepSpawnTask>()
-                .find(|t| t.room == curr_spawn.room_id)
-            else {
-                continue;
-            };
-
-            curr_spawn.assign_spawn_task(task, curr_room)?;
-        }
-        Ok(())
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut SpawnActor> {
+        self.actors.values_mut()
     }
 
     pub fn run(actors: &mut Actors, tasks: &mut Tasks) -> Result<()> {
-        let spawn_ids = actors
-            .spawn_actors
-            .actors
-            .keys()
-            .copied()
-            .collect::<Vec<_>>();
-        for spawn_id in spawn_ids {
-            let curr_spawn = actors.spawn_actors.actors.get_mut(&spawn_id).unwrap();
-            let Some(spawn_task_id) = curr_spawn.memory.spawn_task else {
-                continue;
-            };
-            let task = tasks.get_mut::<CreepSpawnTask>(spawn_task_id)?;
-            curr_spawn.run_spawn_task(task)?;
+        let Actors {
+            room_actors,
+            spawn_actors,
+        } = actors;
+        for curr_spawn in spawn_actors.iter_mut() {
+            curr_spawn.clean_up(tasks)?;
+        }
+        for curr_spawn in spawn_actors.iter_mut() {
+            let curr_room = room_actors
+                .get_mut(&curr_spawn.room_id)
+                .ok_or(anyhow!("room not found"))?;
+            for curr_task in tasks.iter_mut::<CreepSpawnTask>() {
+                if curr_spawn.run_spawn_task(curr_task, curr_room)? {
+                    break;
+                }
+            }
         }
         Ok(())
     }
-
-    // fn add_spawn(&mut self, spawn: SpawnActor) -> Result<SpawnId> {
-    //     match self.alloc_id() {
-    //         NewIdResult::NewId => {
-    //             let id = self.actors.len();
-    //             self.actors.push(spawn);
-    //             Ok(SpawnId(id))
-    //         }
-    //         NewIdResult::ReusedId(id) => {
-    //             self.actors[id] = spawn;
-    //             Ok(SpawnId(id))
-    //         }
-    //     }
-    // }
-
-    // fn remove_spawn(&mut self, id: SpawnId) -> Result<SpawnActor> {
-    //     let mut spawn = SpawnActor::Tombstone(self.free_id(id.0));
-    //     mem::swap(&mut spawn, &mut self.actors[id.0]);
-    //     Ok(spawn)
-    // }
 }
 
 impl SpawnActor {
-    fn assign_spawn_task(
-        &mut self,
-        task: &mut CreepSpawnTask,
-        room: &mut RoomActor,
-    ) -> Result<bool> {
+    fn clean_up(&mut self, tasks: &mut Tasks) -> Result<()> {
+        if let Some(spawn_task_id) = self.memory.spawn_task
+            && self.prototype.spawning().is_none()
+        {
+            info!("Spawned {}", self.prototype.name());
+            let task = tasks.get_mut::<CreepSpawnTask>(spawn_task_id)?;
+            task.spawn = None;
+            self.memory.spawn_task = None;
+            tasks.remove_task(spawn_task_id)?;
+        }
+
+        Ok(())
+    }
+
+    fn run_spawn_task(&mut self, task: &mut CreepSpawnTask, room: &mut RoomActor) -> Result<bool> {
+        if task.room_id != self.room_id || task.spawn.is_some() || self.memory.spawn_task.is_some()
+        {
+            return Ok(false);
+        }
+        if self.prototype.spawning().is_some() {
+            bail!("spawn is busy");
+        }
+
         let body = [Part::Carry, Part::Work, Part::Move, Part::Move];
         let cost = body.iter().map(|p| p.cost()).sum();
         if room.energy_available() < cost {
@@ -232,33 +209,17 @@ impl SpawnActor {
 
         task.spawn = Some(self.id);
         self.memory.spawn_task = Some(task.id);
-
-        Ok(true)
-    }
-
-    fn run_spawn_task(&mut self, task: &mut CreepSpawnTask) -> Result<()> {
-        if self.prototype.spawning().is_some() {
-            let task_id = self
-                .memory
-                .spawn_task
-                .ok_or(anyhow!("should be task running"))?;
-            info!("spawning...");
-            return Ok(());
-        }
-
-        let body = vec![Part::Carry, Part::Work, Part::Move, Part::Move];
-
         info!("creating");
         self.prototype.spawn_creep(&body, "t1")?;
 
-        Ok(())
+        Ok(true)
     }
 }
 
 impl From<&str> for SpawnId {
     fn from(value: &str) -> Self {
         let s = value.strip_prefix('S').expect("invalid spawn id");
-        let id: usize = s.trim_start_matches('0').parse().unwrap();
+        let id: usize = s.parse().unwrap();
         SpawnId(id)
     }
 }
@@ -272,7 +233,7 @@ impl From<SpawnId> for String {
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct CreepSpawnTask {
     id: TaskId,
-    room: RoomId,
+    room_id: RoomId,
     creep_class: CreepClass,
     spawn: Option<SpawnId>,
 }
@@ -283,10 +244,10 @@ pub enum CreepClass {
 }
 
 impl CreepSpawnTask {
-    pub fn new_task(id: TaskId, room: RoomId, creep_class: CreepClass) -> Task {
+    pub fn new_task(id: TaskId, room_id: RoomId, creep_class: CreepClass) -> Task {
         Task::CreepSpawn(CreepSpawnTask {
             id,
-            room,
+            room_id,
             creep_class,
             spawn: None,
         })
